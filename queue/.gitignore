@@ -1,0 +1,45 @@
+# ============================================================================
+# Queue Layer - Background Worker
+# Python and queue-specific patterns
+# ============================================================================
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python package management
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# Queue/Worker specific
+*.pid
+celerybeat-schedule
+celerybeat.pid
+celery_beat_schedule
+
+# Task results/state
+task_results/
+worker_state/
+
+# Message broker persistence (if using file-based)
+queue_data/
+broker_data/

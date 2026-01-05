@@ -1,0 +1,38 @@
+# FableYard Studio - Combined Python Dependencies
+# Single requirements file for shared venv (API + Queue + Core)
+
+# ==================================================
+# Core ML Dependencies
+# ==================================================
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# HuggingFace & Transformers
+transformers>=4.30.0
+tokenizers>=0.13.0
+sentencepiece>=0.1.99
+accelerate>=0.20.0
+
+# Model Loading & Serialization
+safetensors>=0.3.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# Numerical Computing
+numpy>=1.24.0
+
+# ==================================================
+# API Dependencies
+# ==================================================
+fastapi==0.115.5
+uvicorn==0.32.1
+python-dotenv>=1.0.0
+
+# ==================================================
+# Development & Testing
+# ==================================================
+pytest>=7.4.0
+pytest-asyncio>=0.21.0

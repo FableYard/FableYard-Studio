@@ -1,0 +1,46 @@
+{
+  "txt2img": {
+    "flux": {
+      "dev.0.30.0": {
+        "CLIP": [
+          "positive"
+        ],
+        "T5": [
+          "positive"
+        ]
+      }
+    },
+    "stablediffusion": {
+      "3-5": {
+        "CLIP Local": [
+          "positive",
+          "negative"
+        ],
+        "CLIP Global": [
+          "positive",
+          "negative"
+        ],
+        "T5": [
+          "positive",
+          "negative"
+        ]
+      }
+    },
+    "pony": {
+      "version": {
+        "CLIP": [
+          "positive",
+          "negative"
+        ]
+      }
+    },
+    "z": {
+      "turbo": {
+        "Qwen": [
+          "positive",
+          "negative"
+        ]
+      }
+    }
+  }
+}

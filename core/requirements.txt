@@ -1,0 +1,26 @@
+# Core ML Framework
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+
+# HuggingFace & Transformers
+transformers>=4.30.0
+tokenizers>=0.13.0
+sentencepiece>=0.1.99
+accelerate>=0.20.0
+
+# Model Loading & Serialization
+safetensors>=0.3.0
+
+# Image Processing
+Pillow>=10.0.0
+
+# Numerical Computing
+numpy>=1.24.0
+
+# Web Framework
+Flask>=2.3.0
+
+# Development & Testing
+pytest>=7.4.0

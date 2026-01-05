@@ -1,0 +1,94 @@
+FableYard Studio
+Copyright (C) 2024-2025 FableYard
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+================================================================================
+
+THIRD-PARTY SOFTWARE NOTICES AND INFORMATION
+
+This project incorporates components from the following open-source projects:
+
+--------------------------------------------------------------------------------
+PyTorch
+https://pytorch.org/
+License: BSD-3-Clause
+Copyright (c) 2016- Facebook, Inc (Adam Paszke)
+Copyright (c) 2014- Facebook, Inc (Soumith Chintala)
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006 Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+
+--------------------------------------------------------------------------------
+Transformers (Hugging Face)
+https://github.com/huggingface/transformers
+License: Apache-2.0
+Copyright 2018- The Hugging Face team. All rights reserved.
+
+--------------------------------------------------------------------------------
+FastAPI
+https://github.com/tiangolo/fastapi
+License: MIT
+Copyright (c) 2018 Sebastián Ramírez
+
+--------------------------------------------------------------------------------
+Svelte / SvelteKit
+https://svelte.dev/
+License: MIT
+Copyright (c) 2016-present [these people](https://github.com/sveltejs/svelte/graphs/contributors)
+
+--------------------------------------------------------------------------------
+Vite
+https://vitejs.dev/
+License: MIT
+Copyright (c) 2019-present, Yuxi (Evan) You and Vite contributors
+
+--------------------------------------------------------------------------------
+
+For a complete list of dependencies and their licenses, please refer to:
+- Python dependencies: requirements.txt
+- JavaScript dependencies: ui/package.json
+
+================================================================================
+
+TRADEMARKS
+
+FableYard and FableYard Studio are trademarks of FableYard.
+This license does not grant permission to use the trade names, trademarks,
+service marks, or product names of FableYard, except as required for
+reasonable and customary use in describing the origin of the software.
+
+================================================================================
+
+GENERATED CONTENT
+
+Content generated using FableYard Studio is owned by the user who generated it.
+FableYard makes no claims to ownership of user-generated content.
+
+Please be aware that AI models may have their own licenses and usage restrictions.
+Users are responsible for ensuring compliance with any applicable model licenses.
+
+================================================================================
+
+CONTACT
+
+For questions about this software or licensing:
+- Website: https://fableyard.com
+- GitHub: https://github.com/fableyard/fableyard-studio
+
+================================================================================

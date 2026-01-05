@@ -1,0 +1,38 @@
+# ============================================================================
+# FableYard Studio - Root .gitignore
+# Project-wide patterns that apply to all layers
+# ============================================================================
+
+# Environment variables (project-wide)
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDEs (any layer)
+.idea/
+.vscode/
+*.swp
+*.swo
+*.code-workspace
+
+# OS files (any layer)
+.DS_Store
+Thumbs.db
+desktop.ini
+*.lnk
+
+# User data directory (models, outputs, generated content)
+user/
+
+# Logs (project-wide)
+*.log
+logs/
+
+# Temporary files (project-wide)
+*.tmp
+*.temp
+.cache/
+
+# Miscellaneous
+nul
