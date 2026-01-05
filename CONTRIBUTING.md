@@ -16,7 +16,7 @@ Thank you for your interest in contributing to FableYard Studio!
 2. Create a feature branch (`git checkout -b feature/your-feature`)
 3. Make your changes
 4. Test your changes thoroughly
-5. Commit with standard convention (type(scope): message)
+5. Commit with standard convention (`type(scope): message`)
 6. Push to your fork
 7. Open a pull request with a clear description of changes
 
