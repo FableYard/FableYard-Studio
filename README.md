@@ -67,7 +67,7 @@ The application runs entirely on your machine, giving you full control over your
 
 3. **Download AI models:**
 
-   Download Flux model files and place them in the `user/models/` directory:
+   Download HuggingFace model files and place them in the `user/models/` directory:
    ```
    user/
    └── models/
@@ -198,4 +198,5 @@ We chose GPL-3.0 to ensure FableYard Studio remains free and open-source while a
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 See the [LICENSE](LICENSE) file for the full text of the GNU General Public License v3.0.
+
 
