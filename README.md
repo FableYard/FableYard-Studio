@@ -73,10 +73,10 @@ The application runs entirely on your machine, giving you full control over your
    └── models/
        └── flux/
 	       └── dev.0.30.0/
-			   ├── clip_l.safetensors
-			   ├── t5xxl_fp16.safetensors
-			   ├── ae.safetensors
-			   └── flux1-schnell.safetensors
+			   ├── tokenizer/
+			   ├── tokenizer_2/
+			   ├── text_encoder
+			   └── text_encoder_2/
    ```
 
    Models can be obtained from HuggingFace or other model repositories.
@@ -198,3 +198,4 @@ We chose GPL-3.0 to ensure FableYard Studio remains free and open-source while a
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 See the [LICENSE](LICENSE) file for the full text of the GNU General Public License v3.0.
+
