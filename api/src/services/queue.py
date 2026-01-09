@@ -6,6 +6,7 @@ Handles job submission to the worker process.
 """
 
 import uuid
+from pathlib import Path
 from models import MediaRequest, MediaResponse
 
 # Pipeline type mapping remains the same
@@ -32,16 +33,18 @@ PIPELINE_TYPE_MAP = {
 class QueueService:
     """Queue service for submitting jobs to worker process"""
 
-    def __init__(self, job_queue, event_bridge):
+    def __init__(self, job_queue, event_bridge, adapter_dir: Path):
         """
         Initialize queue service with JobQueue wrapper and EventBridge
 
         Args:
             job_queue: JobQueue instance wrapping multiprocessing.Queue
             event_bridge: EventBridge instance for publishing events
+            adapter_dir: Path to adapter storage directory
         """
         self.job_queue = job_queue
         self.event_bridge = event_bridge
+        self.adapter_dir = adapter_dir
 
     def queue_job(self, request: MediaRequest) -> MediaResponse:
         """
@@ -70,7 +73,9 @@ class QueueService:
             "stepCount": request.stepCount,
             "imageWidth": request.imageWidth,
             "imageHeight": request.imageHeight,
-            "lora": request.lora
+            "seed": request.seed,
+            "adapters": request.adapters,
+            "adapter_dir": str(self.adapter_dir)  # Include adapter directory path
         }
 
         # Enqueue to job queue (non-blocking, instant return)

@@ -27,7 +27,7 @@ from routers.websocket import create_websocket_router
 from services.storage import StorageService
 from services.queue import QueueService
 from services.websocket_manager import WebSocketManager
-from api_config import LORAS_DIR, MODELS_DIR, OUTPUTS_DIR
+from api_config import ADAPTER_DIR, MODELS_DIR, OUTPUTS_DIR
 
 from shared.queue_bridge import JobQueue, EventBridge
 
@@ -37,7 +37,7 @@ def create_app(job_queue: mp.Queue, event_queue: mp.Queue) -> FastAPI:
 
     # Initialize services
     storage_service = StorageService(
-        loras_dir=LORAS_DIR,
+        adapter_dir=ADAPTER_DIR,
         models_dir=MODELS_DIR,
         outputs_dir=OUTPUTS_DIR
     )
@@ -47,7 +47,7 @@ def create_app(job_queue: mp.Queue, event_queue: mp.Queue) -> FastAPI:
     event_bridge = EventBridge(event_queue)
 
     # Create queue service
-    queue_service = QueueService(job_service, event_bridge)
+    queue_service = QueueService(job_service, event_bridge, ADAPTER_DIR)
 
     # Create WebSocket manager
     ws_manager = WebSocketManager()
@@ -90,7 +90,7 @@ def create_app(job_queue: mp.Queue, event_queue: mp.Queue) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],  # Configure appropriately for production
-        allow_credentials=True,
+        allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -109,7 +109,7 @@ def create_app(job_queue: mp.Queue, event_queue: mp.Queue) -> FastAPI:
     async def root():
         return {
             "message": "FableYard Studio API is running",
-            "version": "2.0.0",
+            "version": "0.1.1",
             "queue_type": "multiprocessing"
         }
 

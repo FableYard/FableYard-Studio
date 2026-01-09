@@ -2,7 +2,7 @@ import enum
 from uuid import UUID
 
 from pydantic import BaseModel
-from typing import Optional, Dict
+from typing import Optional, Dict, Union
 
 
 class PipelineType(enum.Enum):
@@ -31,7 +31,8 @@ class MediaRequest(BaseModel):
     stepCount: int = 20
     imageWidth: int = 512
     imageHeight: int = 512
-    lora: Optional[str] = None
+    seed: int = -1  # -1 for random, 0-2147483647 for specific seed
+    adapters: Optional[Dict[str, Dict[str, Union[str, float]]]] = None  # {"adapter_key": {"path": str, "strength": float}}
 
 
 class MediaResponse(BaseModel):
@@ -42,8 +43,8 @@ class MediaResponse(BaseModel):
     model: str
 
 
-class LorasResponse(BaseModel):
-    loras: list[str]
+class AdaptersResponse(BaseModel):
+    adapters: list[str]
 
 
 class ModelsResponse(BaseModel):

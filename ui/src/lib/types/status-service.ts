@@ -1,8 +1,3 @@
-// Result type pattern (consistent with existing services)
-export type Result<T, E = string> =
-	| { ok: true; value: T }
-	| { ok: false; error: E };
-
 // Status type discriminated union
 export type StatusType = 'queued' | 'processing' | 'complete' | 'failed';
 

@@ -17,6 +17,8 @@ from dataclasses import dataclass
 from datetime import datetime
 import traceback
 
+import torch
+
 # Setup paths
 script_dir = Path(__file__).parent
 core_dir = script_dir.parent
@@ -90,6 +92,7 @@ class Pipeline:
         # clip_prompt: str,
         # t5_prompt: str,
         prompts: dict[str, dict[str, str]],
+        adapters: dict[str, dict[str, str | float]] | None,
         step_count: int,
         image_height: int,
         image_width: int,
@@ -108,6 +111,7 @@ class Pipeline:
             prompts: Dict mapping prompt types to positive/negative text
                      Example: {"clip": {"positive": "...", "negative": "..."},
                                "t5": {"positive": "...", "negative": "..."}}
+            adapters: Dict mapping adapter paths and their strengths
             step_count: Number of diffusion steps
             image_height: Output image height in pixels
             image_width: Output image width in pixels
@@ -140,6 +144,7 @@ class Pipeline:
                     batch_size=batch_size,
                     # clip_prompt=clip_prompt,
                     # t5_prompt=t5_prompt,
+                    adapters=adapters,
                     prompts=prompts,
                     step_count=step_count,
                     image_height=image_height,
@@ -156,7 +161,7 @@ class Pipeline:
                     f"Create pipelines/txt2img/stable_diffusion/stable_diffusion.py"
                 )
 
-            elif model_family_lower == "z":
+            elif model_family_lower == "z": # TODO: Change model family to "z_image"
                 from pipelines.txt2img.z_image.z_image import ZImagePipeline
                 return ZImagePipeline(
                     model_path=model_path,

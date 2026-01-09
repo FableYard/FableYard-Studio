@@ -3,16 +3,17 @@
 
 from gc import collect
 from pathlib import Path
+from typing import Optional
 
 import torch
 
-from components import CLIPTokenizer, T5Tokenizer, T5TextEncoder, CLIPTextEncoder, \
+from core.src.components import CLIPTokenizer, T5Tokenizer, T5TextEncoder, CLIPTextEncoder, \
     KullbackLeibler
-from components.schedulers.flowmatcheulerdiscrete import FlowMatchEulerDiscrete
-from components.tranformers.flux.fluxtransformer import FluxTransformer
-from utils import ImageSaver, unpatchify
-from utils.latent_generator import LatentGenerator
-from utils.logger import info
+from core.src.components.schedulers.flowmatcheulerdiscrete import FlowMatchEulerDiscrete
+from core.src.components.tranformers.flux.fluxtransformer import FluxTransformer
+from core.src.utils import ImageSaver, unpatchify
+from core.src.utils.latent_generator import LatentGenerator
+from core.src.utils.logger import info
 
 
 class FluxPipeline:
@@ -20,19 +21,19 @@ class FluxPipeline:
             self,
             model_path: Path,
             batch_size: int,
-            # clip_prompt: str,
-            # t5_prompt: str,
             prompts: dict[str, dict[str, str]],
+            adapters: Optional[dict[str, dict[str, str | float]]],
             step_count: int,
             image_height: int,
             image_width: int,
             seed: int,
             guidance_scale: float,
-            image_name: str | None
+            image_name: Optional[str]
     ):
         self.batch_size = batch_size
         self.clip_prompt = prompts['clip']['positive']
         self.t5_prompt = prompts['t5']['positive']
+        self.adapters = adapters
         self.step_count = step_count
         self.image_height = image_height
         self.image_width = image_width
@@ -110,7 +111,7 @@ class FluxPipeline:
         info(f"Initializing transformer...")
 
         with torch.device("meta"):
-            transformer = FluxTransformer(self.transformer_path, self.device)
+            transformer = FluxTransformer(self.transformer_path, self.device, self.adapters)
 
         transformer.load()
 

@@ -14,17 +14,22 @@ class StorageService:
         "Text to Video": "txt2vid",
         "Text to Audio": "txt2aud"
     }
-    def __init__(self, loras_dir: Path, models_dir: Path, outputs_dir: Path):
-        self.loras_dir = loras_dir
+    def __init__(self, adapter_dir: Path, models_dir: Path, outputs_dir: Path):
+        self.adapter_dir = adapter_dir
         self.models_dir = models_dir
         self.outputs_dir = outputs_dir
 
-    def get_loras(self) -> list[str]:
-        """Get a list of LoRA filenames from the storage directory."""
-        if not self.loras_dir.exists():
+    def get_adapters(self, model_family: Optional[str] = None) -> list[str]:
+        """Get a list of adapter filenames from the storage directory."""
+        base_directory = self.adapter_dir
+
+        if model_family:
+            base_directory = base_directory / model_family
+
+        if not base_directory.exists():
             return []
 
-        return [f.name for f in self.loras_dir.iterdir() if f.is_file()]
+        return [f.name for f in base_directory.iterdir() if f.is_file()]
 
     def get_models(self, pipeline_type: Optional[str] = None) -> list[str]:
         """Get a list of model identifiers from the storage directory.

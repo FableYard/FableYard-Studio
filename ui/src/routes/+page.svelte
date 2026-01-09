@@ -4,10 +4,10 @@
 	import MediaPanel from '$lib/components/MediaPanel.svelte';
 	import ControlBar from '$lib/components/ControlBar.svelte';
 	import PromptPanel from '$lib/components/PromptPanel.svelte';
-	import LoRAPanel from '$lib/components/LoRAPanel.svelte';
+	import AdapterPanel from '$lib/components/AdapterPanel.svelte';
 	import StatusPanel from '$lib/components/StatusPanel.svelte';
 	import { modelPromptService } from '$lib/services/ModelPromptService';
-	import { loraService } from '$lib/services/LoRAService';
+	import { adapterSelectorService } from '$lib/services/AdapterSelectorService';
 	import { webSocketService } from '$lib/services/WebSocketService';
 	import { mediaGenerationService } from '$lib/services/MediaGenerationService';
 
@@ -16,7 +16,9 @@
 	let selectedModelName = $state('');
 	let stepCount = $state(20);
 	let imageDimensions = $state('512x512');
+	let seed = $state(-1);
 	let promptPanelRef: any;
+	let adapterPanelRef: any;
 
 	onMount(() => {
 		webSocketService.connect();
@@ -31,13 +33,10 @@
 		console.log('Selected pipeline:', pipelineType);
 	}
 
-	function handleModelSelect(modelFullName: string) {
-		const parts = modelFullName.split('/');
-		if (parts.length === 2) {
-			selectedModelFamily = parts[0];
-			selectedModelName = parts[1];
-			console.log('Model selected:', { family: selectedModelFamily, name: selectedModelName });
-		}
+	function handleModelSelect(modelFamily: string, modelName: string) {
+		selectedModelFamily = modelFamily;
+		selectedModelName = modelName;
+		console.log('Model selected:', { family: selectedModelFamily, name: selectedModelName });
 	}
 
 	function handleStepCountChange(steps: number) {
@@ -48,6 +47,12 @@
 	function handleDimensionsChange(dimensions: string) {
 		imageDimensions = dimensions;
 		console.log('Dimensions changed:', dimensions);
+	}
+
+	function handleSeedChange(newSeed: number) {
+		// Clamp seed value: -1 to 2147483647
+		seed = Math.max(-1, Math.min(2147483647, newSeed));
+		console.log('Seed changed:', seed);
 	}
 
 	async function handleGenerate() {
@@ -86,6 +91,9 @@
 			return;
 		}
 
+		// Get adapters from AdapterPanel (if any)
+		const adapters = adapterPanelRef?.getAdapterValues();
+
 		const model = `${selectedModelFamily}/${selectedModelName}`;
 
 		// Parse dimensions (e.g., "512x768" -> width=512, height=768)
@@ -95,7 +103,9 @@
 			pipelineType: selectedPipeline,
 			model: model,
 			prompts: promptsDict,
+			adapters: adapters,
 			stepCount,
+			seed,
 			width,
 			height
 		});
@@ -107,7 +117,9 @@
 				prompts: promptsDict,
 				stepCount: stepCount,
 				imageWidth: width,
-				imageHeight: height
+				imageHeight: height,
+				seed: seed,
+				adapters: adapters
 			});
 			console.log('✅ Generation queued successfully!', response);
 		} catch (error) {
@@ -135,9 +147,11 @@
 					pipelineType={selectedPipeline || 'Select a pipeline'}
 					stepCount={stepCount}
 					imageDimensions={imageDimensions}
+					seed={seed}
 					onModelSelect={handleModelSelect}
 					onStepCountChange={handleStepCountChange}
 					onDimensionsChange={handleDimensionsChange}
+					onSeedChange={handleSeedChange}
 					onGenerate={handleGenerate}
 				/>
 				{#if selectedPipeline && selectedModelName}
@@ -150,7 +164,7 @@
 							modelName={selectedModelName}
 						/>
 						{#if selectedPipeline === 'Text to Image'}
-							<LoRAPanel service={loraService} />
+							<AdapterPanel bind:this={adapterPanelRef} service={adapterSelectorService} />
 						{/if}
 					</div>
 				{/if}
@@ -223,7 +237,7 @@
 	}
 
 	.panels-container :global(#prompt-panel),
-	.panels-container :global(#lora-panel) {
+	.panels-container :global(#adapter-panel) {
 		flex: 1;
 		overflow-y: auto;
 	}

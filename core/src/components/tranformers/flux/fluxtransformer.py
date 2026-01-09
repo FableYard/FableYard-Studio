@@ -19,11 +19,11 @@ except ImportError:
         return False
 from torch.nn import Linear, ModuleList, Module
 
-from components.tranformers.modules.embedders.guided_timestep_embedder import CombinedTimestepGuidanceTextProjEmbeddings
-from components.tranformers.modules.normalizers.adaptive_layer_continuous import AdaLayerNormContinuous
-from components.tranformers.flux.modules.blocks import FluxTransformerBlock
-from components.tranformers.flux.modules.blocks.single import SingleStreamBlock
-from components.tranformers.modules.embedders.positional import PositionalEmbedder
+from core.src.components.tranformers.modules.embedders.guided_timestep_embedder import CombinedTimestepGuidanceTextProjEmbeddings
+from core.src.components.tranformers.modules.normalizers.adaptive_layer_continuous import AdaLayerNormContinuous
+from core.src.components.tranformers.flux.modules.blocks import FluxTransformerBlock
+from core.src.components.tranformers.flux.modules.blocks.single import SingleStreamBlock
+from core.src.components.tranformers.modules.embedders.positional import PositionalEmbedder
 
 
 class FluxTransformer(Module):
@@ -38,10 +38,12 @@ class FluxTransformer(Module):
         self,
         component_path: Path | str,
         device: str,
+        adapters: Optional[dict],
     ):
         Module.__init__(self)
         self.component_path = Path(component_path)
         self.device = device
+        self.adapters = adapters
 
         config = json.load(open(self.component_path / "config.json"))
         self.patch_size: int = config['patch_size']
@@ -109,8 +111,7 @@ class FluxTransformer(Module):
         # Model is already on meta device from the context manager above
         # Use accelerate to load checkpoint with proper memory management
         print("Loading model with accelerate...")
-
-        self = load_checkpoint_in_model(
+        load_checkpoint_in_model(
             self,
             checkpoint=str(self.component_path),
             device_map={"": self.device},  # Load everything to our device
@@ -118,7 +119,31 @@ class FluxTransformer(Module):
             offload_state_dict=True,  # Don't keep full state dict in memory
         )
 
-        print("Model loading complete!")
+        print("Model loaded")
+
+        if self.adapters:
+            from core.src.components.adapters.adapter_patcher import AdapterPatcher
+            # from core.src.components.adapters.mapper import FluxAdapterMapper
+
+            print(f"Patching {len(self.adapters)} adapters into model...")
+
+            # Convert self.adapters (dict[str, path or state dict]) into AdapterPatcher
+            patcher = AdapterPatcher(transformer_state_dict=self.state_dict(), model_type="flux")
+
+            # Add each adapter with strength
+            for adapter_name, adapter_info in self.adapters.items():
+                # adapter_info can be dict: {"path": path, "strength": float}
+                adapter_path = adapter_info["path"]
+                strength = adapter_info.get("strength", 1.0)
+                patcher.add_adapter(adapter_path, strength)
+
+            # Apply all patches
+            patcher.apply_patches()
+
+            # Release patcher and adapter data to free memory
+            del patcher
+
+            print("Adapters applied successfully.")
 
         # Final cleanup
         gc.collect()
@@ -160,8 +185,6 @@ class FluxTransformer(Module):
         """
         # Embed image latents
         hidden_states = self.x_embedder(hidden_states)
-        assert not torch.isnan(hidden_states).any(), \
-            f"hidden_states contains NaN after x_embedder! Shape: {hidden_states.shape}"
 
         # Scale timestep and guidance (Flux convention: scale by 1000)
         timestep = timestep.to(hidden_states.dtype) * 1000
@@ -169,13 +192,9 @@ class FluxTransformer(Module):
 
         # Create guided timestep conditioning (combines timestep + guidance + pooled text)
         guided_timesteps = self.time_text_embed(timestep, guidance, pooled_projections)
-        assert not torch.isnan(guided_timesteps).any(), \
-            f"guided_timesteps contains NaN after time_text_embeddings! Shape: {guided_timesteps.shape}"
 
         # Embed text conditioning
         encoder_hidden_states = self.context_embedder(encoder_hidden_states)
-        assert not torch.isnan(encoder_hidden_states).any(), \
-            f"encoder_hidden_states contains NaN after context_embedder! Shape: {encoder_hidden_states.shape}"
 
         # Generate rotary position embeddings
         ids = cat((txt_ids, img_ids), dim=0)
@@ -194,10 +213,6 @@ class FluxTransformer(Module):
                 image_rotary_emb=image_rotary_emb,
                 joint_attention_kwargs=joint_attention_kwargs,
             )
-            assert not torch.isnan(hidden_states).any(), \
-                f"hidden_states contains NaN after transformer_block[{i}]! Shape: {hidden_states.shape}"
-            assert not torch.isnan(encoder_hidden_states).any(), \
-                f"encoder_hidden_states contains NaN after transformer_block[{i}]! Shape: {encoder_hidden_states.shape}"
 
         # Single-stream processing (joint image + text)
         for i, block in enumerate(self.single_transformer_blocks):
@@ -208,19 +223,11 @@ class FluxTransformer(Module):
                 image_rotary_emb=image_rotary_emb,
                 joint_attention_kwargs=joint_attention_kwargs,
             )
-            assert not torch.isnan(hidden_states).any(), \
-                f"hidden_states contains NaN after single_transformer_block[{i}]! Shape: {hidden_states.shape}"
-            assert not torch.isnan(encoder_hidden_states).any(), \
-                f"encoder_hidden_states contains NaN after single_transformer_block[{i}]! Shape: {encoder_hidden_states.shape}"
 
         # Adaptive normalization and output projection
         hidden_states = self.norm_out(hidden_states, guided_timesteps)
-        assert not torch.isnan(hidden_states).any(), \
-            f"hidden_states contains NaN after norm_out! Shape: {hidden_states.shape}"
 
         output = self.proj_out(hidden_states)
-        assert not torch.isnan(output).any(), \
-            f"output contains NaN after proj_out! Shape: {output.shape}"
 
         return (output,)
 

@@ -6,14 +6,14 @@ class ModelPromptServiceImpl implements ModelPromptService {
 
     // Map UI pipeline names to config keys
     private pipelineTypeMap: Record<string, string> = {
-        "Image to Text": "img2txt",
-        "Image to Image": "img2img",
-        "Image to Video": "img2vid",
         "Image to Audio": "img2aud",
-        "Text to Text": "txt2txt",
+        "Image to Image": "img2img",
+        "Image to Text": "img2txt",
+        "Image to Video": "img2vid",
+        "Text to Audio": "txt2aud",
         "Text to Image": "txt2img",
+        "Text to Text": "txt2txt",
         "Text to Video": "txt2vid",
-        "Text to Audio": "txt2aud"
     };
 
     private async loadConfig(): Promise<ModelPromptConfig> {

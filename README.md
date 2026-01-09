@@ -128,7 +128,7 @@ FableYard-Studio/
 ├── shared/        # Shared utilities
 ├── user/          # User data directory
 │   ├── models/    # AI model storage
-│   ├── loras/     # LoRA files (future)
+│   ├── adapters/  # Adapter files
 │   └── output/    # Generated images
 └── start.py       # Application entry point
 ```
@@ -139,11 +139,12 @@ Future features and enhancements planned for FableYard Studio:
 
 - **Improved Precision** - Improve and optimize precision calculations
 - **Negative Prompting** - Specify what to exclude from generated images
-- **LoRA Support** - Fine-tune generations with Low-Rank Adaptation models
+- **Adapter Support** - Fine-tune generations with adapters
 - **Stable Diffusion 3.5** - Add support for the latest SD models
 - **Pony Diffusion** - Specialized model support for stylized content
 - **Text-to-Text Pipelines** - Extend beyond image generation to text tasks
 - **Cloud Generation Option** - Optional cloud-based processing for users without GPUs
+- **Improve Media Panel** - Investigate potential improvements to the media panel, such as pagination 
 
 ## Change Log
 

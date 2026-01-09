@@ -19,7 +19,7 @@ class PipelineWorker:
         "stepCount": 20,  # number of diffusion steps (default: 20)
         "imageWidth": 512,  # image width in pixels (default: 512)
         "imageHeight": 512,  # image height in pixels (default: 512)
-        "lora": None  # optional
+        "adapters": None  # optional
     }
     """
 
@@ -55,7 +55,19 @@ class PipelineWorker:
         step_count = payload.get("stepCount", 20)  # Default to 20 if not provided
         image_width = payload.get("imageWidth", 512)
         image_height = payload.get("imageHeight", 512)
-        lora = payload.get("lora")
+        seed = payload.get("seed", -1)  # Default to random
+        adapters = payload.get("adapters")
+        adapter_dir = payload.get("adapter_dir")
+
+        # Handle seed: clamp and generate random if -1
+        if seed == -1:
+            import random
+            seed = random.randint(0, 2147483647)
+            print(f"[WORKER] Generated random seed: {seed}")
+        else:
+            # Clamp to valid range
+            seed = max(0, min(2147483647, seed))
+            print(f"[WORKER] Using specified seed: {seed}")
 
         # Debug: Print what we received
         print(f"[WORKER DEBUG] Received prompts: {repr(prompts)}")
@@ -86,6 +98,23 @@ class PipelineWorker:
         except Exception as e:
             raise ValueError(f"Failed to parse model '{model}': {e}")
 
+        # Resolve adapter paths if adapters are provided
+        if adapters and adapter_dir:
+            from pathlib import Path
+            resolved_adapters = {}
+            print(f"[WORKER DEBUG] Resolving adapter paths with base dir: {adapter_dir}")
+            for adapter_key, adapter_info in adapters.items():
+                relative_path = adapter_info["path"]  # e.g., "flux/lora1.safetensors"
+                full_path = Path(adapter_dir) / relative_path
+                resolved_adapters[adapter_key] = {
+                    "path": str(full_path),
+                    "strength": adapter_info["strength"]
+                }
+                print(f"[WORKER DEBUG] Resolved adapter '{adapter_key}': {relative_path} -> {full_path}")
+            adapters = resolved_adapters
+        elif adapters:
+            print("[WORKER WARNING] Adapters provided but adapter_dir missing - skipping path resolution")
+
         # Import Pipeline factory from core
         try:
             from pipeline_executor import Pipeline
@@ -100,7 +129,6 @@ class PipelineWorker:
 
         # Pipeline parameters with defaults
         # TODO: Make these configurable via payload or config
-        seed = 42
         guidance_scale = 3.5
         batch_size = 1
 
@@ -115,6 +143,7 @@ class PipelineWorker:
                 model_name=model_name,
                 batch_size=batch_size,
                 prompts=prompts,
+                adapters=adapters,
                 step_count=step_count,
                 image_height=image_height,
                 image_width=image_width,
