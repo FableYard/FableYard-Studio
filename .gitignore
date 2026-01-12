@@ -28,6 +28,12 @@ desktop.ini
 # User data directory (models, outputs, generated content)
 user/
 
+# Local dev utils
+core/dev_utils
+
+# Local docs
+docs/
+
 # Logs (project-wide)
 *.log
 logs/
