@@ -7,12 +7,24 @@
         pipelineType: string
         stepCount?: number
         imageDimensions?: string
-        onModelSelect?: (modelName: string) => void
+        seed?: number
+        onModelSelect?: (modelFamily: string, modelName: string) => void
         onStepCountChange?: (steps: number) => void
         onDimensionsChange?: (dimensions: string) => void
+        onSeedChange?: (seed: number) => void
         onGenerate?: () => void
     }
-    let { pipelineType, stepCount = 20, imageDimensions = "512x512", onModelSelect, onStepCountChange, onDimensionsChange, onGenerate }: ControlBarProps = $props();
+    let {
+        pipelineType,
+        stepCount = 20,
+        imageDimensions = "512x512",
+        seed = -1,
+        onModelSelect,
+        onStepCountChange,
+        onDimensionsChange,
+        onSeedChange,
+        onGenerate
+    }: ControlBarProps = $props();
 
     const dimensionOptions = [
         { value: "512x512", label: "512x512" },
@@ -42,6 +54,19 @@
         if (onDimensionsChange) {
             onDimensionsChange(value);
         }
+    }
+
+    function handleSeedChange(event: Event) {
+        const value = parseInt((event.target as HTMLInputElement).value);
+        if (onSeedChange && !isNaN(value)) {
+            onSeedChange(value);
+        }
+    }
+
+    function handleModelSelect(modelFamily: string, modelName: string) {
+        console.log(`Selected model: ${modelFamily}/${modelName}`);
+        modelSelectorService.modelChangeDetected(modelFamily);
+        onModelSelect?.(modelFamily, modelName);
     }
 </script>
 
@@ -73,12 +98,24 @@
                     oninput={handleStepCountChange}
                 />
             </div>
+            <div class="seed-input">
+                <label for="seed">Seed:</label>
+                <input
+                    id="seed"
+                    type="number"
+                    min="-1"
+                    max="2147483647"
+                    value={seed}
+                    oninput={handleSeedChange}
+                    placeholder="-1 for random"
+                />
+            </div>
         {/if}
         <Selector
             service={modelSelectorService}
             pipelineType={pipelineType}
             placeholder={{ label: "Model:", id: "model" }}
-            onModelSelect={onModelSelect}
+            onModelSelect={handleModelSelect}
         />
     </div>
 </div>
@@ -158,6 +195,32 @@
     }
 
     .step-count-input input:focus {
+        outline: none;
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+    }
+
+    .seed-input {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .seed-input label {
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .seed-input input {
+        width: 100px;
+        padding: 0.4rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+
+    .seed-input input:focus {
         outline: none;
         border-color: #4a90e2;
         box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);

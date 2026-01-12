@@ -31,7 +31,7 @@ class StatusServiceImpl implements StatusService {
 			// Determine event type based on presence of error/result or explicit type
 			if (error) {
 				// task.failed
-				console.error('❌ Generation failed:', {
+				console.error('Generation failed:', {
 					taskId: task_id,
 					error: error
 				});
@@ -45,7 +45,7 @@ class StatusServiceImpl implements StatusService {
 				this.addStatus(status);
 			} else if (result) {
 				// task.completed
-				console.log('✅ Generation completed:', {
+				console.log('Generation completed:', {
 					taskId: task_id,
 					outputPath: result?.output_path,
 					duration: result?.duration
@@ -61,7 +61,7 @@ class StatusServiceImpl implements StatusService {
 				this.addStatus(status);
 			} else if (payload) {
 				// task.queued - has payload with request details
-				console.log('📋 Task queued:', {
+				console.log('Task queued:', {
 					taskId: task_id,
 					pipelineType: payload.pipelineType,
 					model: payload.model
@@ -71,14 +71,14 @@ class StatusServiceImpl implements StatusService {
 					runId: task_id,
 					timestamp: new Date().toISOString(),
 					type: 'queued',
-					queuePosition: 1,
+					queuePosition: 1, // TODO: This needs to be refactored into a variable instead of hard-coded
 					pipelineType: payload.pipelineType || 'Unknown',
 					model: payload.model || 'unknown'
 				};
 				this.addStatus(status);
 			} else {
 				// task.processing - no error, result, or payload
-				console.log('⚙️ Task processing:', { taskId: task_id });
+				console.log('Task processing:', { taskId: task_id });
 				const status: ProcessingStatus = {
 					id: `${task_id}-processing`,
 					runId: task_id,

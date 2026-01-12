@@ -7,7 +7,8 @@ export interface MediaRequest {
     stepCount?: number;
     imageWidth?: number;
     imageHeight?: number;
-    lora?: string;
+    seed?: number;
+    adapters?: Record<string, Record<string, string | number>>; // {"adapter_key": {"path": string, "strength": number}}
 }
 
 export interface MediaResponse {

@@ -18,9 +18,15 @@ class KullbackLeibler(nn.Module):
     Architecture and behavior are fully defined by vae/config.json.
     """
 
-    def __init__(self, model_path: Path | str, device: str):
+    def __init__(
+        self,
+        model_path: Path | str = None,
+        device: str = None,
+        checkpoint_path: Path | str = None
+    ):
         super().__init__()
-        self.model_path = Path(model_path)
+        self.model_path = Path(model_path) if model_path else None
+        self.checkpoint_path = Path(checkpoint_path) if checkpoint_path else None
         self.device = device
 
         # populated in load()
@@ -37,11 +43,27 @@ class KullbackLeibler(nn.Module):
 
     def load(self) -> None:
         """Load VAE decoder architecture and weights from config + safetensors."""
-        cfg_path = self.model_path / "config.json"
-        weights_path = self.model_path / "diffusion_pytorch_model.safetensors"
-
-        with open(cfg_path, "r") as f:
-            cfg = json.load(f)
+        if self.checkpoint_path is not None:
+            # Load from single checkpoint file
+            # Use hardcoded Flux VAE config
+            cfg = {
+                "latent_channels": 16,
+                "out_channels": 3,
+                "block_out_channels": [128, 256, 512, 512],
+                "layers_per_block": 2,
+                "norm_num_groups": 32,
+                "act_fn": "silu",
+                "up_block_types": ["UpDecoderBlock2D", "UpDecoderBlock2D", "UpDecoderBlock2D", "UpDecoderBlock2D"],
+                "mid_block_add_attention": True,
+                "use_post_quant_conv": True,
+                "scaling_factor": 0.3611,
+                "shift_factor": 0.1159
+            }
+        else:
+            # Load from directory (diffusers format)
+            cfg_path = self.model_path / "config.json"
+            with open(cfg_path, "r") as f:
+                cfg = json.load(f)
 
         # ---- authoritative config values ----
         latent_channels = cfg["latent_channels"]
@@ -119,16 +141,47 @@ class KullbackLeibler(nn.Module):
         # ---- materialize + load weights ----
         self.to_empty(device=self.device)
 
-        state = load_file(str(weights_path), device=self.device)
-        cleaned_state = {
-            k[len("decoder."):] if k.startswith("decoder.") else k: v
-            for k, v in state.items()
-        }
+        if self.checkpoint_path is not None:
+            # Load from single checkpoint file
+            from utils.checkpoint_utils import load_state_dict_from_checkpoint
 
-        self.load_state_dict(cleaned_state, strict=False, assign=True)
+            print(f"Loading VAE from checkpoint: {self.checkpoint_path.name}")
+
+            state_dict = load_state_dict_from_checkpoint(
+                checkpoint_path=self.checkpoint_path,
+                key_prefix="first_stage_model.",
+                strip_prefix=True,
+                device=self.device
+            )
+
+            if len(state_dict) == 0:
+                # VAE not in checkpoint, must load from directory
+                raise ValueError(
+                    f"VAE not found in checkpoint. "
+                    f"Use model_path parameter to load from diffusers directory."
+                )
+
+            # Strip 'decoder.' prefix if present
+            cleaned_state = {
+                k[len("decoder."):] if k.startswith("decoder.") else k: v
+                for k, v in state_dict.items()
+            }
+
+            self.load_state_dict(cleaned_state, strict=False, assign=True)
+            print("VAE loaded from checkpoint")
+        else:
+            # Load from directory (diffusers format)
+            weights_path = self.model_path / "diffusion_pytorch_model.safetensors"
+            state = load_file(str(weights_path), device=self.device)
+            cleaned_state = {
+                k[len("decoder."):] if k.startswith("decoder.") else k: v
+                for k, v in state.items()
+            }
+
+            self.load_state_dict(cleaned_state, strict=False, assign=True)
+            del state, cleaned_state
+
         self.eval()
-
-        del state, cleaned_state
 
     @torch.inference_mode()
     def decode(self, z: torch.Tensor) -> torch.Tensor:

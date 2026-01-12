@@ -17,5 +17,9 @@ export type ModelPromptConfig = {
 }
 
 export interface ModelPromptService {
-    getModelPrompts(pipelineType: string, modelFamily: string, modelName: string): Promise<PromptConfig>
+    getModelPrompts(
+        pipelineType: string,
+        modelFamily: string,
+        modelName: string
+    ): Promise<PromptConfig>
 }

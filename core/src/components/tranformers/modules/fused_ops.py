@@ -11,9 +11,10 @@ Note: Functions that take nn.Module parameters cannot be JIT-scripted, so they r
 on PyTorch's automatic kernel fusion and memory optimization passes.
 """
 
-from typing import Tuple, Optional
+from typing import Tuple
 
 import torch
+
 from torch import Tensor
 
 

@@ -14,17 +14,22 @@ class StorageService:
         "Text to Video": "txt2vid",
         "Text to Audio": "txt2aud"
     }
-    def __init__(self, loras_dir: Path, models_dir: Path, outputs_dir: Path):
-        self.loras_dir = loras_dir
+    def __init__(self, adapter_dir: Path, models_dir: Path, outputs_dir: Path):
+        self.adapter_dir = adapter_dir
         self.models_dir = models_dir
         self.outputs_dir = outputs_dir
 
-    def get_loras(self) -> list[str]:
-        """Get a list of LoRA filenames from the storage directory."""
-        if not self.loras_dir.exists():
+    def get_adapters(self, model_family: Optional[str] = None) -> list[str]:
+        """Get a list of adapter filenames from the storage directory."""
+        base_directory = self.adapter_dir
+
+        if model_family:
+            base_directory = base_directory / model_family
+
+        if not base_directory.exists():
             return []
 
-        return [f.name for f in self.loras_dir.iterdir() if f.is_file()]
+        return [f.name for f in base_directory.iterdir() if f.is_file()]
 
     def get_models(self, pipeline_type: Optional[str] = None) -> list[str]:
         """Get a list of model identifiers from the storage directory.
@@ -55,12 +60,18 @@ class StorageService:
                 if not family_dir.is_dir():
                     continue
 
+                # Use lowercase for model family to match worker expectations
+                family_name = family_dir.name.lower()
+
                 # Iterate through model versions (dev-1, 3-5, etc.)
-                for version_dir in family_dir.iterdir():
-                    if version_dir.is_dir():
-                        # Use lowercase for model family to match worker expectations
-                        family_name = family_dir.name.lower()
-                        model_id = f"{family_name}/{version_dir.name}"
+                for model_item in family_dir.iterdir():
+                    if model_item.is_dir():
+                        # Directory-based model (diffusers format)
+                        model_id = f"{family_name}/{model_item.name}"
+                        models.add(model_id)
+                    elif model_item.is_file() and model_item.suffix == '.safetensors':
+                        # Checkpoint file (BFL format)
+                        model_id = f"{family_name}/{model_item.name}"
                         models.add(model_id)
 
         return sorted(list(models))

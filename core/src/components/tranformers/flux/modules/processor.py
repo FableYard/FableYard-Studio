@@ -6,8 +6,8 @@ from typing import Optional
 from torch import Tensor
 from torch.nn.functional import scaled_dot_product_attention
 
-from components.tranformers.modules.embedders.apply_rotary_emb import apply_rotary_emb
 from components.tranformers.modules.attendants.utils import _get_qkv_projections
+from components.tranformers.modules.embedders.apply_rotary_emb import apply_rotary_emb
 from components.tranformers.modules.fused_ops import fused_qkv_prep_single, fused_qkv_prep_dual
 
 

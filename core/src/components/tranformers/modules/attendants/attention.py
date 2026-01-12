@@ -6,7 +6,10 @@ import inspect
 from typing import Optional
 
 from torch import Tensor
-from torch.nn import Module as TorchModule, RMSNorm, Linear, Dropout, ModuleList
+from torch.nn import Module as TorchModule, Linear, Dropout, ModuleList
+
+from components.tranformers.modules.normalizers.root_mean_squared import RMSNorm
+
 
 class Attention(TorchModule):
     def __init__(
@@ -40,8 +43,8 @@ class Attention(TorchModule):
         self.added_kv_proj_dim = added_kv_proj_dim
         self.added_proj_bias = added_proj_bias
 
-        self.norm_q = RMSNorm(dim_head, eps=eps, elementwise_affine=elementwise_affine)
-        self.norm_k = RMSNorm(dim_head, eps=eps, elementwise_affine=elementwise_affine)
+        self.norm_q = RMSNorm(dim_head, epsilon=eps, elementwise_affine=elementwise_affine)
+        self.norm_k = RMSNorm(dim_head, epsilon=eps, elementwise_affine=elementwise_affine)
         self.to_q = Linear(query_dimension, self.inner_dim, bias=bias)
         self.to_k = Linear(query_dimension, self.inner_dim, bias=bias)
         self.to_v = Linear(query_dimension, self.inner_dim, bias=bias)
@@ -52,8 +55,8 @@ class Attention(TorchModule):
             self.to_out.append(Dropout(dropout))
 
         if added_kv_proj_dim is not None:
-            self.norm_added_q = RMSNorm(dim_head, eps=eps)
-            self.norm_added_k = RMSNorm(dim_head, eps=eps)
+            self.norm_added_q = RMSNorm(dim_head, epsilon=eps)
+            self.norm_added_k = RMSNorm(dim_head, epsilon=eps)
 
             self.add_q_proj = Linear(added_kv_proj_dim, self.inner_dim, bias=added_proj_bias)
             self.add_k_proj = Linear(added_kv_proj_dim, self.inner_dim, bias=added_proj_bias)

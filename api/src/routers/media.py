@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Query
 from typing import Optional
 
-from models import LorasResponse, ModelsResponse, MediaResponse, MediaRequest, OutputsResponse
+from models import AdaptersResponse, ModelsResponse, MediaResponse, MediaRequest, OutputsResponse
 from services.storage import StorageService
 from services.queue import QueueService
 
@@ -11,11 +11,11 @@ def create_router(
 ) -> APIRouter:
     router = APIRouter()
 
-    @router.get("/loras", response_model=LorasResponse)
-    async def list_loras():
-        """Get a list of locally stored LoRAs filenames."""
-        loras = storage_service.get_loras()
-        return LorasResponse(loras=loras)
+    @router.get("/adapters", response_model=AdaptersResponse)
+    async def list_adapters(model_family: Optional[str] = Query(None)):
+        """Get a list of locally stored adapter filenames."""
+        adapters = storage_service.get_adapters(model_family=model_family)
+        return AdaptersResponse(adapters=adapters)
 
     @router.get("/models", response_model=ModelsResponse)
     async def list_models(pipeline_type: Optional[str] = Query(None)):
@@ -25,7 +25,7 @@ def create_router(
 
     @router.get("/outputs", response_model=OutputsResponse)
     async def list_outputs():
-        """Get a list of output images ordered by most recent first."""
+        """Get a list of output images ordered by the most recent first."""
         outputs = storage_service.get_outputs()
         return OutputsResponse(outputs=outputs)
 

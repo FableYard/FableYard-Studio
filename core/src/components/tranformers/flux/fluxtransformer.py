@@ -12,6 +12,8 @@ import torch
 from torch import Tensor, LongTensor, cat
 import gc
 
+from utils import info
+
 try:
     from torch import is_torch_npu_available
 except ImportError:
@@ -38,10 +40,12 @@ class FluxTransformer(Module):
         self,
         component_path: Path | str,
         device: str,
+        adapters: Optional[dict],
     ):
         Module.__init__(self)
         self.component_path = Path(component_path)
         self.device = device
+        self.adapters = adapters
 
         config = json.load(open(self.component_path / "config.json"))
         self.patch_size: int = config['patch_size']
@@ -59,7 +63,22 @@ class FluxTransformer(Module):
 
     def load(self) -> None:
         """Load FLUX transformer architecture and weights"""
+        # Phase 1: Load adapters to CPU (lazy, no delta computation yet)
+        patcher = None
+        if self.adapters:
+            from components.adapters.adapter_patcher import AdapterPatcher
+
+            info(f"Loading {len(self.adapters)} adapters...")
+            patcher = AdapterPatcher(model_type="flux")
+
+            for adapter_name, adapter_info in self.adapters.items():
+                adapter_path = adapter_info["path"]
+                strength = adapter_info.get("strength", 1.0)
+                patcher.add_adapter(adapter_path, strength)
+
+        # Phase 2: Initialize and load model
         # Initialize transformer architecture on meta device (no memory allocation)
+        info("Initializing model on meta device...")
         with torch.device("meta"):
             # Position embeddings
             self.positional_embeddings = PositionalEmbedder(theta=10000, axes_dimension=self.axes_dimensions_rope)
@@ -108,9 +127,8 @@ class FluxTransformer(Module):
 
         # Model is already on meta device from the context manager above
         # Use accelerate to load checkpoint with proper memory management
-        print("Loading model with accelerate...")
-
-        self = load_checkpoint_in_model(
+        info("Loading model with accelerate...")
+        load_checkpoint_in_model(
             self,
             checkpoint=str(self.component_path),
             device_map={"": self.device},  # Load everything to our device
@@ -118,7 +136,13 @@ class FluxTransformer(Module):
             offload_state_dict=True,  # Don't keep full state dict in memory
         )
 
-        print("Model loading complete!")
+        info("Model loaded")
+
+        # Phase 3: Apply prepared deltas
+        if patcher is not None:
+            patcher.apply_patches(self.state_dict())
+            del patcher
+            info("Adapters applied successfully.")
 
         # Final cleanup
         gc.collect()
@@ -160,8 +184,6 @@ class FluxTransformer(Module):
         """
         # Embed image latents
         hidden_states = self.x_embedder(hidden_states)
-        assert not torch.isnan(hidden_states).any(), \
-            f"hidden_states contains NaN after x_embedder! Shape: {hidden_states.shape}"
 
         # Scale timestep and guidance (Flux convention: scale by 1000)
         timestep = timestep.to(hidden_states.dtype) * 1000
@@ -169,13 +191,9 @@ class FluxTransformer(Module):
 
         # Create guided timestep conditioning (combines timestep + guidance + pooled text)
         guided_timesteps = self.time_text_embed(timestep, guidance, pooled_projections)
-        assert not torch.isnan(guided_timesteps).any(), \
-            f"guided_timesteps contains NaN after time_text_embeddings! Shape: {guided_timesteps.shape}"
 
         # Embed text conditioning
         encoder_hidden_states = self.context_embedder(encoder_hidden_states)
-        assert not torch.isnan(encoder_hidden_states).any(), \
-            f"encoder_hidden_states contains NaN after context_embedder! Shape: {encoder_hidden_states.shape}"
 
         # Generate rotary position embeddings
         ids = cat((txt_ids, img_ids), dim=0)
@@ -194,10 +212,6 @@ class FluxTransformer(Module):
                 image_rotary_emb=image_rotary_emb,
                 joint_attention_kwargs=joint_attention_kwargs,
             )
-            assert not torch.isnan(hidden_states).any(), \
-                f"hidden_states contains NaN after transformer_block[{i}]! Shape: {hidden_states.shape}"
-            assert not torch.isnan(encoder_hidden_states).any(), \
-                f"encoder_hidden_states contains NaN after transformer_block[{i}]! Shape: {encoder_hidden_states.shape}"
 
         # Single-stream processing (joint image + text)
         for i, block in enumerate(self.single_transformer_blocks):
@@ -208,19 +222,11 @@ class FluxTransformer(Module):
                 image_rotary_emb=image_rotary_emb,
                 joint_attention_kwargs=joint_attention_kwargs,
             )
-            assert not torch.isnan(hidden_states).any(), \
-                f"hidden_states contains NaN after single_transformer_block[{i}]! Shape: {hidden_states.shape}"
-            assert not torch.isnan(encoder_hidden_states).any(), \
-                f"encoder_hidden_states contains NaN after single_transformer_block[{i}]! Shape: {encoder_hidden_states.shape}"
 
         # Adaptive normalization and output projection
         hidden_states = self.norm_out(hidden_states, guided_timesteps)
-        assert not torch.isnan(hidden_states).any(), \
-            f"hidden_states contains NaN after norm_out! Shape: {hidden_states.shape}"
 
         output = self.proj_out(hidden_states)
-        assert not torch.isnan(output).any(), \
-            f"output contains NaN after proj_out! Shape: {output.shape}"
 
         return (output,)
 
