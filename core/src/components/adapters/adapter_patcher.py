@@ -1,3 +1,6 @@
+# Copyright (C) 2024-2025 FableYard
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from pathlib import Path
 from typing import Union
 import gc
@@ -32,7 +35,7 @@ class AdapterPatcher:
         mapper = AdapterMapper.from_model_type(
             self.model_type,
             state_dict=state_dict,
-            model_state_dict={}
+            model_state_dict=None
         )
         info(f"    Mapper type: {type(mapper).__name__}")
 
@@ -63,46 +66,48 @@ class AdapterPatcher:
         patched_count = 0
         weight_count = 0
 
-        for weight_key in keys_with_patches:
-            weight_count += 1
-            if weight_count % 100 == 0:
-                info(f"  Processed {weight_count}/{len(keys_with_patches)}, patched {patched_count}")
+        # Use no_grad context to allow in-place operations on parameters
+        with torch.no_grad():
+            for weight_key in keys_with_patches:
+                weight_count += 1
+                if weight_count % 100 == 0:
+                    info(f"  Processed {weight_count}/{len(keys_with_patches)}, patched {patched_count}")
 
-            weight = self.state_dict.get(weight_key)
-            if weight is None:
-                continue
+                weight = self.state_dict.get(weight_key)
+                if weight is None:
+                    continue
 
-            if not torch.is_floating_point(weight):
-                continue
+                if not torch.is_floating_point(weight):
+                    continue
 
-            # Check if weight is fp8
-            is_fp8 = weight.dtype in (torch.float8_e4m3fn, torch.float8_e5m2)
-            compute_dtype = torch.bfloat16 if is_fp8 else weight.dtype
+                # Check if weight is fp8
+                is_fp8 = weight.dtype in (torch.float8_e4m3fn, torch.float8_e5m2)
+                compute_dtype = torch.bfloat16 if is_fp8 else weight.dtype
 
-            # Compute delta on-demand from each adapter
-            delta_sum = None
-            for processor, strength in self.pending_adapters:
-                delta = processor.compute_delta(
-                    transformer_key=weight_key,
-                    strength=strength,
-                    dtype=compute_dtype,
-                    device=weight.device
-                )
+                # Compute delta on-demand from each adapter
+                delta_sum = None
+                for processor, strength in self.pending_adapters:
+                    delta = processor.compute_delta(
+                        transformer_key=weight_key,
+                        strength=strength,
+                        dtype=compute_dtype,
+                        device=weight.device
+                    )
 
-                if delta is not None:
-                    if delta.shape != weight.shape:
-                        raise ValueError(f"Shape mismatch for {weight_key}: delta {delta.shape} vs weight {weight.shape}")
-                    delta_sum = delta if delta_sum is None else delta_sum.add_(delta)
+                    if delta is not None:
+                        if delta.shape != weight.shape:
+                            raise ValueError(f"Shape mismatch for {weight_key}: delta {delta.shape} vs weight {weight.shape}")
+                        delta_sum = delta if delta_sum is None else delta_sum.add_(delta)
 
-            if delta_sum is not None:
-                if is_fp8:
-                    weight_compute = weight.to(dtype=torch.bfloat16)
-                    weight_compute.add_(delta_sum)
-                    self.state_dict[weight_key] = weight_compute
-                else:
-                    weight.add_(delta_sum)
+                if delta_sum is not None:
+                    if is_fp8:
+                        weight_compute = weight.to(dtype=torch.bfloat16)
+                        weight_compute.add_(delta_sum)
+                        self.state_dict[weight_key] = weight_compute
+                    else:
+                        weight.add_(delta_sum)
 
-                patched_count += 1
+                    patched_count += 1
 
         info(f"  Applied {patched_count} patches")
 

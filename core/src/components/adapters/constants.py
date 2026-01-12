@@ -1,3 +1,6 @@
+# Copyright (C) 2024-2025 FableYard
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from components.adapters.adapter_role import AdapterRole
 
 # Flux1 Dev
