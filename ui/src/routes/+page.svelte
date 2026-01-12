@@ -136,7 +136,7 @@
 
 <div class="app-container">
 	<header class="header">
-		<h1>FableYard Studio</h1>
+		<h1>FableYard™ Studio</h1>
 	</header>
 
 	<main class="main">
@@ -175,7 +175,7 @@
 	</main>
 
 	<footer class="footer">
-		<p>© FableYard Studio</p>
+		<p>© FableYard™ Studio</p>
 	</footer>
 </div>
 

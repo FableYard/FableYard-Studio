@@ -8,6 +8,22 @@
         "T5": [
           "positive"
         ]
+      },
+      "flux1-dev.safetensors": {
+        "CLIP": [
+          "positive"
+        ],
+        "T5": [
+          "positive"
+        ]
+      },
+      "flux1-dev-fp8.safetensors": {
+        "CLIP": [
+          "positive"
+        ],
+        "T5": [
+          "positive"
+        ]
       }
     },
     "stablediffusion": {

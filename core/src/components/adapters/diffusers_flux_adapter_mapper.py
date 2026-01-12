@@ -1,4 +1,4 @@
-from core.src.components.adapters.mapper import AdapterMapper
+from components.adapters.mapper import AdapterMapper
 
 
 class DiffusersFluxAdapterMapper(AdapterMapper):

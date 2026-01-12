@@ -60,12 +60,18 @@ class StorageService:
                 if not family_dir.is_dir():
                     continue
 
+                # Use lowercase for model family to match worker expectations
+                family_name = family_dir.name.lower()
+
                 # Iterate through model versions (dev-1, 3-5, etc.)
-                for version_dir in family_dir.iterdir():
-                    if version_dir.is_dir():
-                        # Use lowercase for model family to match worker expectations
-                        family_name = family_dir.name.lower()
-                        model_id = f"{family_name}/{version_dir.name}"
+                for model_item in family_dir.iterdir():
+                    if model_item.is_dir():
+                        # Directory-based model (diffusers format)
+                        model_id = f"{family_name}/{model_item.name}"
+                        models.add(model_id)
+                    elif model_item.is_file() and model_item.suffix == '.safetensors':
+                        # Checkpoint file (BFL format)
+                        model_id = f"{family_name}/{model_item.name}"
                         models.add(model_id)
 
         return sorted(list(models))

@@ -19,7 +19,9 @@
 
 ## About
 
-FableYard Studio is a browser-based user interface for AI-powered media generation using locally stored models. It provides an intuitive, streamlined interface for local image media generation.
+![FableYard Studio UI](assets/ui_demo.png)
+
+FableYard Studio is a browser-based user interface for AI-powered media generation using locally stored models. It provides an intuitive, streamlined interface for local media generation.
 
 The application runs entirely on your machine, giving you full control over your models, data, and generated content. Whether you're an artist, designer, or AI enthusiast, FableYard Studio makes advanced generative AI accessible through a clean, simple interface.
 
@@ -38,7 +40,7 @@ The application runs entirely on your machine, giving you full control over your
 
 ### Prerequisites
 
-- **Python 3.8+** with pip
+- **Python 3.12+** with pip
 - **NVIDIA GPU** with CUDA 12.1+ (for GPU acceleration)
 - **8GB+ VRAM** recommended for image generation
 - **Storage:** Several GB for models and dependencies
@@ -52,6 +54,8 @@ The application runs entirely on your machine, giving you full control over your
    ```
 
 2. **Set up the Python environment:**
+
+   > This step will take a few moments to install required packages
 
    **Windows:**
    ```bash
@@ -67,19 +71,25 @@ The application runs entirely on your machine, giving you full control over your
 
 3. **Download AI models:**
 
-   Download HuggingFace model files and place them in the `user/models/` directory:
+   Download HuggingFace model files and place them in the `user/models/{model_family}` directory:
    ```
    user/
    └── models/
-       └── flux/
-	       └── dev.0.30.0/
+       └── flux/ <- This directory should be pre-made
+	       └── dev.0.30.0/ <- user names this directory
 			   ├── tokenizer/
 			   ├── tokenizer_2/
 			   ├── text_encoder
 			   └── text_encoder_2/
    ```
 
-   Models can be obtained from HuggingFace or other model repositories.
+   Download Civitai checkpoint files and place them in the `user/models/{model_family}` directory:
+   ```
+   user/
+   └── models/
+       └── flux/ <- This directory should be pre-made
+	       └── flux1-dev-fp8.safetensors <- user names this file if they please
+   ```
 
 4. **Start the application:**
 
@@ -106,16 +116,14 @@ The application runs entirely on your machine, giving you full control over your
 
 ### Basic Workflow
 
-1. **Enter a text prompt** describing the image you want to generate
-2. **Configure generation parameters:**
-   - Steps: Number of diffusion iterations (default: 20)
-   - Image dimensions: Width and height (default: 512x512)
-   - Guidance scale: How closely to follow the prompt (default: 3.5)
-   - Seed: For reproducible generations (default: 42)
-3. **Click Generate** to start the process
-4. **Monitor progress** via real-time WebSocket updates
-5. **View generated images** in the Media Panel
-6. **Download outputs** from the `user/output/` directory
+1. **Select Pipeline Type**
+2. **Select Model**
+3. **Set Run Configuration (step count, image dimensions, etc)
+4. **Enter a text prompt** describing the image you want to generate
+5. **Click Generate** to start the process
+6. **Monitor progress** via real-time WebSocket updates
+7. **View generated images** in the Media Panel
+8. **Download outputs** from the `user/output/` directory
 
 ### Project Structure
 
@@ -139,16 +147,25 @@ Future features and enhancements planned for FableYard Studio:
 
 - **Improved Precision** - Improve and optimize precision calculations
 - **Negative Prompting** - Specify what to exclude from generated images
-- **Adapter Support** - Fine-tune generations with adapters
+- **Increased Adapter Support** - Handle variants of the same model
 - **Stable Diffusion 3.5** - Add support for the latest SD models
 - **Pony Diffusion** - Specialized model support for stylized content
 - **Text-to-Text Pipelines** - Extend beyond image generation to text tasks
-- **Cloud Generation Option** - Optional cloud-based processing for users without GPUs
-- **Improve Media Panel** - Investigate potential improvements to the media panel, such as pagination 
+- **Improve Media Panel** - Various improvements, such as reducing API calls on start 
+- **Cloud Generation Option** - Cloud-based processing for users without GPUs
 
 ## Change Log
 
-### Version 0.1.0 (Current)
+### Version 0.1.1
+
+- Implement adapter support for Flux1 and Z Image model
+- Refactor `/loras` endpoint to `/adapters`
+- Utilize Path over hardcoded strings for directory/file paths
+- Implement user configurations such as step count, seed number, etc..
+- Refactor ModelSelectorService to align with AdapterSelectorService
+- Update README
+
+### Version 0.1.0
 
 **Initial Release**
 - Text-to-image generation using Flux or Z Image models

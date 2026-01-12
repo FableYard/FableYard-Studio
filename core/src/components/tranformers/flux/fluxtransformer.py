@@ -12,6 +12,8 @@ import torch
 from torch import Tensor, LongTensor, cat
 import gc
 
+from utils import info
+
 try:
     from torch import is_torch_npu_available
 except ImportError:
@@ -19,11 +21,11 @@ except ImportError:
         return False
 from torch.nn import Linear, ModuleList, Module
 
-from core.src.components.tranformers.modules.embedders.guided_timestep_embedder import CombinedTimestepGuidanceTextProjEmbeddings
-from core.src.components.tranformers.modules.normalizers.adaptive_layer_continuous import AdaLayerNormContinuous
-from core.src.components.tranformers.flux.modules.blocks import FluxTransformerBlock
-from core.src.components.tranformers.flux.modules.blocks.single import SingleStreamBlock
-from core.src.components.tranformers.modules.embedders.positional import PositionalEmbedder
+from components.tranformers.modules.embedders.guided_timestep_embedder import CombinedTimestepGuidanceTextProjEmbeddings
+from components.tranformers.modules.normalizers.adaptive_layer_continuous import AdaLayerNormContinuous
+from components.tranformers.flux.modules.blocks import FluxTransformerBlock
+from components.tranformers.flux.modules.blocks.single import SingleStreamBlock
+from components.tranformers.modules.embedders.positional import PositionalEmbedder
 
 
 class FluxTransformer(Module):
@@ -61,7 +63,22 @@ class FluxTransformer(Module):
 
     def load(self) -> None:
         """Load FLUX transformer architecture and weights"""
+        # Phase 1: Load adapters to CPU (lazy, no delta computation yet)
+        patcher = None
+        if self.adapters:
+            from components.adapters.adapter_patcher import AdapterPatcher
+
+            info(f"Loading {len(self.adapters)} adapters...")
+            patcher = AdapterPatcher(model_type="flux")
+
+            for adapter_name, adapter_info in self.adapters.items():
+                adapter_path = adapter_info["path"]
+                strength = adapter_info.get("strength", 1.0)
+                patcher.add_adapter(adapter_path, strength)
+
+        # Phase 2: Initialize and load model
         # Initialize transformer architecture on meta device (no memory allocation)
+        info("Initializing model on meta device...")
         with torch.device("meta"):
             # Position embeddings
             self.positional_embeddings = PositionalEmbedder(theta=10000, axes_dimension=self.axes_dimensions_rope)
@@ -110,7 +127,7 @@ class FluxTransformer(Module):
 
         # Model is already on meta device from the context manager above
         # Use accelerate to load checkpoint with proper memory management
-        print("Loading model with accelerate...")
+        info("Loading model with accelerate...")
         load_checkpoint_in_model(
             self,
             checkpoint=str(self.component_path),
@@ -119,31 +136,13 @@ class FluxTransformer(Module):
             offload_state_dict=True,  # Don't keep full state dict in memory
         )
 
-        print("Model loaded")
+        info("Model loaded")
 
-        if self.adapters:
-            from core.src.components.adapters.adapter_patcher import AdapterPatcher
-            # from core.src.components.adapters.mapper import FluxAdapterMapper
-
-            print(f"Patching {len(self.adapters)} adapters into model...")
-
-            # Convert self.adapters (dict[str, path or state dict]) into AdapterPatcher
-            patcher = AdapterPatcher(transformer_state_dict=self.state_dict(), model_type="flux")
-
-            # Add each adapter with strength
-            for adapter_name, adapter_info in self.adapters.items():
-                # adapter_info can be dict: {"path": path, "strength": float}
-                adapter_path = adapter_info["path"]
-                strength = adapter_info.get("strength", 1.0)
-                patcher.add_adapter(adapter_path, strength)
-
-            # Apply all patches
-            patcher.apply_patches()
-
-            # Release patcher and adapter data to free memory
+        # Phase 3: Apply prepared deltas
+        if patcher is not None:
+            patcher.apply_patches(self.state_dict())
             del patcher
-
-            print("Adapters applied successfully.")
+            info("Adapters applied successfully.")
 
         # Final cleanup
         gc.collect()

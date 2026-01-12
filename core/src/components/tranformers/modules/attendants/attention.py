@@ -8,7 +8,7 @@ from typing import Optional
 from torch import Tensor
 from torch.nn import Module as TorchModule, Linear, Dropout, ModuleList
 
-from core.src.components.tranformers.modules.normalizers.root_mean_squared import RMSNorm
+from components.tranformers.modules.normalizers.root_mean_squared import RMSNorm
 
 
 class Attention(TorchModule):

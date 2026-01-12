@@ -9,6 +9,9 @@
 .env.*.local
 !.env.example
 
+# Virtual environments
+.venv
+
 # IDEs (any layer)
 .idea/
 .vscode/

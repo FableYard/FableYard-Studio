@@ -36,17 +36,6 @@ def _enable_tf32():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
-
-def info(message: str):
-    """Simple logging function"""
-    print(f"[INFO] {message}")
-
-
-def error(message: str):
-    """Simple error logging function"""
-    print(f"[ERROR] {message}")
-
-
 @dataclass
 class PromptData:
     """Single prompt with type and positive/negative text"""

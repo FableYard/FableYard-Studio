@@ -33,6 +33,9 @@ class AdapterProcessor:
         self.patches = self._create_patches()
         self.mapped_patches = self._map_patches()
 
+        # Release state dict but keep patches
+        del self.state_dict
+
     def _create_patches(self) -> dict:
         """
         Create patches from state dict.
@@ -98,14 +101,17 @@ class AdapterProcessor:
 
     def _map_patches(self) -> dict:
         """
-        Map adapter keys to transformer weight keys once.
+        Map adapter keys to transformer weight keys.
+        Stores lora_up/lora_down for on-demand delta computation.
 
         Returns:
             mapped: {
-                transformer_key: [
-                    (patch, slice_info),  # slice_info is None for direct patches
-                    ...
-                ]
+                transformer_key: {
+                    'alpha': float,
+                    'rank': int,
+                    'lora_up': tensor,
+                    'lora_down': tensor
+                }
             }
         """
         mapped = {}
@@ -116,21 +122,40 @@ class AdapterProcessor:
             if mapping_result is None:
                 continue
 
-            # Check if this is a sliced mapping or direct mapping
-            if isinstance(mapping_result, tuple):
-                # Sliced mapping: (transformer_key, slice_info)
-                transformer_key, slice_info = mapping_result
+            # Check mapping type
+            if isinstance(mapping_result, dict) and mapping_result.get("type") == "unfused_multi":
+                # Unfused multi-component mapping: one fused adapter -> multiple model keys
+                # Need to slice the lora_up tensor for each component
+                components = mapping_result["components"]
+
+                for component in components:
+                    target_key = component["key"]
+                    slice_range = component["slice"]  # [start, end]
+
+                    # Store sliced patch for on-demand computation
+                    lora_up_sliced = patch['lora_up'][slice_range[0]:slice_range[1], :]
+
+                    sliced_patch = {
+                        'alpha': patch['alpha'],
+                        'rank': patch['rank'],
+                        'lora_up': lora_up_sliced,
+                        'lora_down': patch['lora_down']
+                    }
+
+                    if target_key in mapped:
+                        print(f"WARNING: Duplicate mapping to {target_key}")
+
+                    mapped[target_key] = sliced_patch
+
+            elif isinstance(mapping_result, tuple):
+                # Legacy sliced mapping (for reverse case: multiple adapters -> one model key)
+                # Not used in current unfusing implementation
+                pass
+
             else:
                 # Direct mapping: transformer_key (string)
                 transformer_key = mapping_result
-                slice_info = None
-
-            # Store patch with its slice info
-            # Multiple patches can target the same weight (e.g., q, k, v -> qkv)
-            if transformer_key not in mapped:
-                mapped[transformer_key] = []
-
-            mapped[transformer_key].append((patch, slice_info))
+                mapped[transformer_key] = patch
 
         return mapped
 
@@ -139,52 +164,30 @@ class AdapterProcessor:
         transformer_key: str,
         strength: float,
         dtype: torch.dtype,
-        weight_shape: tuple = None
+        device: torch.device
     ) -> torch.Tensor | None:
         """
-        Compute delta for a transformer weight if this adapter affects it.
+        Compute delta on-demand for a transformer weight (ComfyUI style).
 
         Args:
             transformer_key: The weight key in the transformer
             strength: Adapter strength multiplier
             dtype: Target dtype for the delta
-            weight_shape: Shape of the target weight (needed for sliced patches)
+            device: Target device for the delta
 
         Returns:
             Delta tensor with the same shape as the target weight, or None
         """
-        patches = self.mapped_patches.get(transformer_key)
-        if patches is None:
+        patch = self.mapped_patches.get(transformer_key)
+        if patch is None:
             return None
 
-        delta_accumulator = None
+        # Compute LoRA delta on-demand: scale * (lora_up @ lora_down)
+        # Move to target device first for fast GPU computation
+        lora_up = patch['lora_up'].to(device=device, dtype=dtype)
+        lora_down = patch['lora_down'].to(device=device, dtype=dtype)
 
-        for patch, slice_info in patches:
-            scale = (patch['alpha'] / patch['rank']) * strength
-            patch_delta = scale * (patch['lora_up'] @ patch['lora_down'])
-            patch_delta = patch_delta.to(dtype)
+        scale = (patch['alpha'] / patch['rank']) * strength
+        delta = scale * (lora_up @ lora_down)
 
-            if slice_info is None:
-                # Direct patch - entire weight is affected
-                delta_accumulator = patch_delta if delta_accumulator is None else delta_accumulator.add_(patch_delta)
-            else:
-                # Sliced patch - only part of the weight is affected
-                # slice_info format: (dimension, start_offset, length)
-                if weight_shape is None:
-                    raise ValueError(f"weight_shape required for sliced patch on {transformer_key}")
-
-                # Create full-sized delta if needed
-                if delta_accumulator is None:
-                    delta_accumulator = torch.zeros(weight_shape, dtype=dtype, device=patch_delta.device)
-
-                dim, start, length = slice_info
-
-                # Apply patch to the appropriate slice
-                if dim == 0:
-                    delta_accumulator[start:start+length, :].add_(patch_delta)
-                elif dim == 1:
-                    delta_accumulator[:, start:start+length].add_(patch_delta)
-                else:
-                    raise ValueError(f"Unsupported slice dimension: {dim}")
-
-        return delta_accumulator
+        return delta
