@@ -156,6 +156,10 @@ Future features and enhancements planned for FableYard Studio:
 
 ## Change Log
 
+### Version 0.1.2
+
+- Integrate Z-Image Adapter support
+
 ### Version 0.1.1
 
 - Implement adapter support for Flux1 and Z Image model
