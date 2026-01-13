@@ -158,6 +158,7 @@ class Pipeline:
                     # clip_prompt=clip_prompt,
                     # t5_prompt=t5_prompt,
                     prompts=prompts,
+                    adapters=adapters,
                     step_count=step_count,
                     image_height=image_height,
                     image_width=image_width,

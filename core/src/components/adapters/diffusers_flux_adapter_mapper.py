@@ -1,3 +1,6 @@
+# Copyright (C) 2024-2025 FableYard
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from components.adapters.mapper import AdapterMapper
 
 
@@ -58,8 +61,8 @@ class DiffusersFluxAdapterMapper(AdapterMapper):
 
         if self.target_format == "z":
             # Z model: Just strip "diffusion_model." prefix
-            # diffusion_model.layers.0.attention.to_q → layers.0.attention.to_q
-            return adapter_key[len("diffusion_model."):]
+            # diffusion_model.layers.0.attention.to_q → layers.0.attention.to_q.weight
+            return adapter_key[len("diffusion_model."):] + ".weight"
 
         elif self.target_format == "diffusers":
             # Diffusers Flux: Translate naming conventions
@@ -80,29 +83,29 @@ class DiffusersFluxAdapterMapper(AdapterMapper):
             component = rest[0] if rest else None
 
             if component == "attention":
-                # attention.to_q → attn.to_q
-                # attention.to_out.0 → attn.to_out.0
-                return f"transformer_blocks.{layer_idx}.attn." + ".".join(rest[1:])
+                # attention.to_q → attn.to_q.weight
+                # attention.to_out.0 → attn.to_out.0.weight
+                return f"transformer_blocks.{layer_idx}.attn." + ".".join(rest[1:]) + ".weight"
 
             elif component == "feed_forward":
-                # feed_forward.w1 → ff.net.0.proj
-                # feed_forward.w2 → ff.net.2
-                # feed_forward.w3 → ff_context.net.0.proj (or skip if not applicable)
+                # feed_forward.w1 → ff.net.0.proj.weight
+                # feed_forward.w2 → ff.net.2.weight
+                # feed_forward.w3 → ff_context.net.0.proj.weight (or skip if not applicable)
                 if len(rest) < 2:
                     return None
 
                 ff_component = rest[1]
                 if ff_component == "w1":
-                    return f"transformer_blocks.{layer_idx}.ff.net.0.proj"
+                    return f"transformer_blocks.{layer_idx}.ff.net.0.proj.weight"
                 elif ff_component == "w2":
-                    return f"transformer_blocks.{layer_idx}.ff.net.2"
+                    return f"transformer_blocks.{layer_idx}.ff.net.2.weight"
                 elif ff_component == "w3":
                     # w3 is gating - may be part of w1 in some implementations
                     # For now, skip (return None) as standard diffusers Flux doesn't have separate w3
                     return None
 
             elif component == "adaLN_modulation":
-                # adaLN_modulation.0 → norm1.linear
-                return f"transformer_blocks.{layer_idx}.norm1.linear"
+                # adaLN_modulation.0 → norm1.linear.weight
+                return f"transformer_blocks.{layer_idx}.norm1.linear.weight"
 
         return None

@@ -6,12 +6,15 @@ Z-Image Pipeline
 Handles text-to-image generation using Z-Image Turbo model with Qwen3 text encoder.
 """
 import logging
+
 from gc import collect
 from pathlib import Path
+from typing import Optional
 
 import torch
 
 from components import KullbackLeibler
+from components.adapters.adapter_patcher import AdapterPatcher
 from components.qwen2_tokenizer import Qwen2Tokenizer
 from components.qwen3_text_encoder import Qwen3TextEncoder
 from components.schedulers.flowmatcheulerdiscrete import FlowMatchEulerDiscrete
@@ -31,6 +34,7 @@ class ZImagePipeline:
         model_path: Path,
         batch_size: int,
         prompts: dict[str, dict[str, str]],
+        adapters: Optional[dict[str, dict[str, str | float]]],
         step_count: int,
         image_height: int,
         image_width: int,
@@ -41,6 +45,7 @@ class ZImagePipeline:
         self.batch_size = batch_size
         self.positive_prompt = prompts['qwen']['positive']
         self.negative_prompt = prompts['qwen'].get('negative', '')  # Default to empty string if not provided
+        self.adapters = adapters
         self.step_count = step_count
         self.image_height = image_height
         self.image_width = image_width
@@ -143,6 +148,39 @@ class ZImagePipeline:
         # ========================================================================
         info(f"Initializing Z-Image transformer...")
         transformer = ZImageTransformer(self.transformer_path, self.device)
+
+        # ========================================================================
+        # 4.5. Apply Adapters (if provided)
+        # ========================================================================
+        if self.adapters:
+            info(f"Applying {len(self.adapters)} adapter(s) to transformer...")
+
+            # Create adapter patcher
+            patcher = AdapterPatcher(model_type='flux')
+
+            # Add all adapters
+            for adapter_name, adapter_config in self.adapters.items():
+                adapter_path = adapter_config['path']
+                adapter_strength = adapter_config['strength']
+                info(f"  Adding adapter: {adapter_name} (strength: {adapter_strength})")
+                patcher.add_adapter(adapter_path, adapter_strength)
+
+            # Create state dict from model parameters
+            # Note: named_parameters() returns actual parameter references, not copies
+            info(f"  Creating parameter dict from transformer...")
+            param_dict = {name: param for name, param in transformer.named_parameters()}
+
+            # Apply patches to the parameter dict
+            info(f"  Applying adapter patches...")
+            patcher.apply_patches(param_dict)
+
+            info(f"Adapter application complete!")
+
+            # Clean up
+            del patcher, param_dict
+            collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
         # ========================================================================
         # 5. Generate Initial Latents

@@ -1,3 +1,6 @@
+# Copyright (C) 2024-2025 FableYard
+# SPDX-License-Identifier: GPL-3.0-or-later
+
 from pathlib import Path
 
 from safetensors.torch import load_file
