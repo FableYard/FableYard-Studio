@@ -2,7 +2,7 @@
 
 > Generate media with locally stored AI models
 
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/FableYard/FableYard-Studio)
+[![Version](https://img.shields.io/badge/version-0.1.3-blue.svg)](https://github.com/FableYard/FableYard-Studio)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
 **Links:** [www.fableyard.com](https://fableyard.com)
@@ -156,6 +156,10 @@ Future features and enhancements planned for FableYard Studio:
 
 ## Change Log
 
+### Version 0.1.3
+
+- Improve decoding quality
+
 ### Version 0.1.2
 
 - Integrate Z-Image Adapter support
@@ -220,5 +224,6 @@ We chose GPL-3.0 to ensure FableYard Studio remains free and open-source while a
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 See the [LICENSE](LICENSE) file for the full text of the GNU General Public License v3.0.
+
 
 
