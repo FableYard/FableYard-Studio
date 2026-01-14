@@ -61,38 +61,17 @@ class FlowMatchEulerDiscrete:
         # Optional: expose pseudo-timesteps for logging
         self._timesteps = sigmas * self.config["num_train_timesteps"]
 
-        # Debug sanity check
-        assert torch.all(self._sigmas[:-1] < 1)
-        assert torch.all(self._sigmas[:-1] > 0)
-        assert torch.all(self._sigmas[:-1][:-1] >= self._sigmas[:-1][1:])
-
     def step(
             self,
             model_output: Tensor,
             sample: Tensor,
             return_dict: bool = True,
     ) -> Union[Tensor, Tuple[Tensor]]:
-        # Validate inputs
-        assert not torch.isnan(model_output).any(), \
-            f"model_output contains NaN at step {self._step_index}! Shape: {model_output.shape}"
-        assert not torch.isinf(model_output).any(), \
-            f"model_output contains Inf at step {self._step_index}! Shape: {model_output.shape}"
-        assert not torch.isnan(sample).any(), \
-            f"sample contains NaN at step {self._step_index}! Shape: {sample.shape}"
-        assert not torch.isinf(sample).any(), \
-            f"sample contains Inf at step {self._step_index}! Shape: {sample.shape}"
-
         sigma = self._sigmas[self._step_index]
         sigma_next = self._sigmas[self._step_index + 1]
 
         dt = sigma_next - sigma
         prev_sample = sample + dt * model_output
-
-        # Validate output
-        assert not torch.isnan(prev_sample).any(), \
-            f"prev_sample contains NaN after step {self._step_index}! Shape: {prev_sample.shape}"
-        assert not torch.isinf(prev_sample).any(), \
-            f"prev_sample contains Inf after step {self._step_index}! Shape: {prev_sample.shape}"
 
         self._step_index += 1
 

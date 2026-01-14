@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 from pathlib import Path
-from typing import Tuple
 import json
 import torch
 import torch.nn as nn
@@ -86,6 +85,7 @@ class KullbackLeibler(nn.Module):
                 block_out_channels[-1],
                 kernel_size=3,
                 padding=1,
+                dtype=torch.float32
             )
 
             self.mid_block = MidBlock(
@@ -109,7 +109,7 @@ class KullbackLeibler(nn.Module):
                     UpDecoderBlock2D(
                         input_channel_count=prev_channels,
                         output_channel_count=out_ch,
-                        layer_count=layers_per_block + 1,
+                        layer_count=layers_per_block,
                         dropout=0.0,
                         add_upsample=not is_final,
                         group_count=norm_num_groups,
@@ -122,6 +122,7 @@ class KullbackLeibler(nn.Module):
                 num_groups=norm_num_groups,
                 num_channels=block_out_channels[0],
                 eps=1e-6,
+                dtype=torch.float32
             )
             self.conv_act = get_activation(act_fn)
             self.conv_out = nn.Conv2d(
@@ -129,6 +130,7 @@ class KullbackLeibler(nn.Module):
                 out_channels,
                 kernel_size=3,
                 padding=1,
+                dtype=torch.float32
             )
 
             if use_post_quant_conv:
@@ -136,6 +138,7 @@ class KullbackLeibler(nn.Module):
                     latent_channels,
                     latent_channels,
                     kernel_size=1,
+                    dtype=torch.float32
                 )
 
         # ---- materialize + load weights ----
@@ -167,7 +170,7 @@ class KullbackLeibler(nn.Module):
                 for k, v in state_dict.items()
             }
 
-            self.load_state_dict(cleaned_state, strict=False, assign=True)
+            self.load_state_dict(cleaned_state, strict=False)
             print("VAE loaded from checkpoint")
         else:
             # Load from directory (diffusers format)
@@ -178,7 +181,7 @@ class KullbackLeibler(nn.Module):
                 for k, v in state.items()
             }
 
-            self.load_state_dict(cleaned_state, strict=False, assign=True)
+            self.load_state_dict(cleaned_state, strict=False)
             del state, cleaned_state
 
         self.eval()
@@ -194,49 +197,18 @@ class KullbackLeibler(nn.Module):
         Returns:
             (B, out_channels, H*8, W*8)
         """
-        # Validate input
-        assert not torch.isnan(z).any(), \
-            f"Input to VAE decode contains NaN! Shape: {z.shape}, dtype: {z.dtype}"
-        assert not torch.isinf(z).any(), \
-            f"Input to VAE decode contains Inf! Shape: {z.shape}, dtype: {z.dtype}"
-
-        z = (z / self._scaling_factor) + self._shift_factor
-
         if self.post_quant_conv is not None:
             z = self.post_quant_conv(z)
-            assert not torch.isnan(z).any(), \
-                f"Output of post_quant_conv contains NaN! Shape: {z.shape}"
-            assert not torch.isinf(z).any(), \
-                f"Output of post_quant_conv contains Inf! Shape: {z.shape}"
 
         x = self.conv_in(z)
-        assert not torch.isnan(x).any(), \
-            f"Output of conv_in contains NaN! Shape: {x.shape}"
-        assert not torch.isinf(x).any(), \
-            f"Output of conv_in contains Inf! Shape: {x.shape}"
-
         x = self.mid_block(x)
-        assert not torch.isnan(x).any(), \
-            f"Output of mid_block contains NaN! Shape: {x.shape}"
-        assert not torch.isinf(x).any(), \
-            f"Output of mid_block contains Inf! Shape: {x.shape}"
 
         for i, up in enumerate(self.up_blocks):
             x = up(x)
-            assert not torch.isnan(x).any(), \
-                f"Output of up_block[{i}] contains NaN! Shape: {x.shape}"
-            assert not torch.isinf(x).any(), \
-                f"Output of up_block[{i}] contains Inf! Shape: {x.shape}"
 
         x = self.conv_norm_out(x)
         x = self.conv_act(x)
         x = self.conv_out(x)
-
-        # Validate final output
-        assert not torch.isnan(x).any(), \
-            f"Final VAE output contains NaN! Shape: {x.shape}"
-        assert not torch.isinf(x).any(), \
-            f"Final VAE output contains Inf! Shape: {x.shape}"
 
         return x
 
