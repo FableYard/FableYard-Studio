@@ -206,8 +206,7 @@ class FluxPipeline:
         img_ids = img_ids.to(device=self.device, dtype=activation_dtype)
         txt_ids = txt_ids.to(device=self.device, dtype=activation_dtype)
 
-        guidance_scale = 3.5
-        guidance = torch.full([1], guidance_scale, device=self.device, dtype=activation_dtype)
+        guidance = torch.full([1], self.guidance_scale, device=self.device, dtype=activation_dtype)
         guidance = guidance.expand(latents.shape[0])
 
         with torch.no_grad():
@@ -277,6 +276,9 @@ class FluxPipeline:
 
         # Convert latents to match VAE dtype (float32)
         unpatchified_latents = unpatchified_latents.to(dtype=torch.float32)
+
+        # Scale latents before VAE decode (denormalize from diffusion space)
+        unpatchified_latents = (unpatchified_latents / vae._scaling_factor) + vae._shift_factor
 
         with torch.no_grad():
             decoded_output = vae.decode(unpatchified_latents)

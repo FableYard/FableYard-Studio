@@ -26,17 +26,20 @@ def main():
     # These parameters would normally come from the API/queue layer
     pipeline_type = "txt2img"
     model_family = "z"
-    model_name = "turbo"  # Diffusers format
+    model_name = "turbo"
 
     # Runtime parameters
     batch_size = 1
     prompts = {
         # "clip": {
-        #     "positive": "score_9, score_8_up, a glasssculpture of Earth set in the middle of a street, transparent, translucent",
+        #     "positive": "score_9, score_8_up, fabled hero, light cloth armor, hood and tattered cape, staff, dramatic"
+        #                 " sunlight, meadow, trees in background",
         #     "negative": ""
         # },
         # "t5": {
-        #     "positive": "score_9, score_8_up. An image of the earth as a glasssculpture in the middle of the street.",
+        #     "positive": "score_9, score_8_up. An image of a fabled hero standing in a meadow. He is wearing light cloth"
+        #                 " armor, a hood, and a tattered cape. Dramatic sunlight illuminates the trees in the "
+        #                 "background.",
         #     "negative": ""
         # }
         "qwen": {
@@ -45,13 +48,13 @@ def main():
                         " jewelry, long sleeves, pocket, shirt, shirt tucked in, skirt, striped, striped sleeves,"
                         " waistcoat, retro_scifi_artstyle, 1girl, solo, alone, retro_artstyle, retro, cyberpunk,"
                         " masterpiece, highres, cyberpunk city background",
-            "negative": ""
+            "negative": "bad quality, low quality, score_1, score_2, score_3, deformed"
         }
     }
-    step_count = 16
+    step_count = 15
     height = 512
     width = 512
-    seed = 84135189
+    seed = 35481661
     guidance_scale = 3.5
     image_name = "demo_output"
 
