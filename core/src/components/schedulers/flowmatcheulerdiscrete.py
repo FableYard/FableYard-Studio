@@ -1,37 +1,40 @@
 # Copyright (C) 2024-2025 FableYard
 # SPDX-License-Identifier: GPL-3.0-or-later
 
-import json
+"""
+FlowMatch Euler Discrete Scheduler
+
+Scheduler using FlowMatch sigma schedule with Euler integration.
+"""
+
 from pathlib import Path
 
 import torch
-from torch import Tensor
-from typing import Tuple, Union
+
+from .base import BaseScheduler
+from .sigma_schedules import flow_match_schedule, apply_logit_shift
 
 
-class FlowMatchEulerDiscrete:
-    def __init__(self, model_path: Path, device: str):
-        self.model_path = Path(model_path) / "scheduler_config.json"
-        self.device = device
+class FlowMatchEulerDiscrete(BaseScheduler):
+    """
+    FlowMatch scheduler with sequence-length-dependent logit shift.
 
-        with self.model_path.open("r", encoding="utf-8") as f:
-            self.config = json.load(f)
+    Uses a linear schedule in probability space with a shift applied
+    in logit space based on the image sequence length.
+    """
 
-        self._step_index = 0
-        self._sigmas = None
-        self._timesteps = None
+    def set_timesteps(self, step_count: int, image_sequence_length: int) -> None:
+        """
+        Set the FlowMatch sigma schedule with logit shift.
 
-    def set_timesteps(self, step_count: int, image_sequence_length: int):
+        Args:
+            step_count: Number of diffusion steps.
+            image_sequence_length: Latent sequence length for shift calculation.
+        """
         eps = 1e-5
 
         # Base FlowMatch schedule (probability space)
-        sigmas = torch.linspace(
-            1.0 - eps,
-            eps,
-            step_count,
-            device=self.device,
-            dtype=torch.float32,
-            )
+        sigmas = flow_match_schedule(step_count, device=self.device, eps=eps)
 
         # === Sequence-length-dependent shift (logit space) ===
         # Use defaults from diffusers FlowMatchEulerDiscreteScheduler
@@ -43,13 +46,8 @@ class FlowMatchEulerDiscrete:
         slope = (max_shift - base_shift) / (max_seq - base_seq)
         shift = image_sequence_length * slope + (base_shift - slope * base_seq)
 
-        # Convert σ → logit(σ), shift, convert back
-        logits = torch.log(sigmas) - torch.log1p(-sigmas)
-        logits = logits + shift
-        sigmas = torch.sigmoid(logits)
-
-        # HARD invariant enforcement
-        sigmas = sigmas.clamp(min=eps, max=1 - eps)
+        # Apply logit shift
+        sigmas = apply_logit_shift(sigmas, shift, eps)
 
         # Append terminal zero for Euler step
         self._sigmas = torch.cat(
@@ -60,21 +58,3 @@ class FlowMatchEulerDiscrete:
 
         # Optional: expose pseudo-timesteps for logging
         self._timesteps = sigmas * self.config["num_train_timesteps"]
-
-    def step(
-            self,
-            model_output: Tensor,
-            sample: Tensor,
-            return_dict: bool = True,
-    ) -> Union[Tensor, Tuple[Tensor]]:
-        sigma = self._sigmas[self._step_index]
-        sigma_next = self._sigmas[self._step_index + 1]
-
-        dt = sigma_next - sigma
-        prev_sample = sample + dt * model_output
-
-        self._step_index += 1
-
-        if not return_dict:
-            return (prev_sample,)
-        return prev_sample

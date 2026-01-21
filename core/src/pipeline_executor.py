@@ -87,7 +87,8 @@ class Pipeline:
         image_width: int,
         seed: int,
         guidance_scale: float,
-        image_name: str | None = None
+        image_name: str | None = None,
+        scheduler_type: str = "linear_quadratic"
     ):
         """
         Factory method to create the correct pipeline instance.
@@ -107,6 +108,7 @@ class Pipeline:
             seed: Random seed for reproducibility
             guidance_scale: Guidance scale for classifier-free guidance
             image_name: Optional filename for saved image (without extension)
+            scheduler_type: Scheduler type ("flow_match" or "linear_quadratic")
 
         Returns:
             Pipeline instance (FluxPipeline, ZImagePipeline, etc.)
@@ -140,7 +142,8 @@ class Pipeline:
                     image_width=image_width,
                     seed=seed,
                     guidance_scale=guidance_scale,
-                    image_name=image_name
+                    image_name=image_name,
+                    scheduler_type=scheduler_type
                 )
 
             elif model_family_lower in ["stablediffusion", "stable_diffusion"]:
