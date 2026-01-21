@@ -167,7 +167,8 @@ class Pipeline:
                     image_width=image_width,
                     seed=seed,
                     guidance_scale=guidance_scale,
-                    image_name=image_name
+                    image_name=image_name,
+                    scheduler_type=scheduler_type
                 )
 
             elif model_family_lower == "pony":

@@ -17,7 +17,7 @@ from components import KullbackLeibler
 from components.adapters.adapter_patcher import AdapterPatcher
 from components.qwen2_tokenizer import Qwen2Tokenizer
 from components.qwen3_text_encoder import Qwen3TextEncoder
-from components.schedulers.flowmatcheulerdiscrete import FlowMatchEulerDiscrete
+from components.schedulers import FlowMatchEulerDiscrete, LinearQuadraticEuler
 from components.tranformers.z_image.turbo_transformer import ZImageTransformer
 from utils import ImageSaver
 from utils.logger import info
@@ -40,7 +40,8 @@ class ZImagePipeline:
         image_width: int,
         seed: int,
         guidance_scale: float,
-        image_name: str | None
+        image_name: str | None,
+        scheduler_type: str = "linear_quadratic"
     ):
         self.batch_size = batch_size
         self.positive_prompt = prompts['qwen']['positive']
@@ -52,6 +53,7 @@ class ZImagePipeline:
         self.seed = seed
         self.guidance_scale = guidance_scale
         self.image_name = image_name
+        self.scheduler_type = scheduler_type
 
         # Component paths
         self.tokenizer_path = Path(model_path, "tokenizer")
@@ -130,17 +132,19 @@ class ZImagePipeline:
         # 3. Initialize Scheduler
         # ========================================================================
         info(f"Initializing scheduler...")
+        info(f"Scheduler type: {self.scheduler_type}")
 
-        scheduler = FlowMatchEulerDiscrete(self.scheduler_path, device=self.device)
-
-        # Calculate image sequence length for scheduler based on latent dimensions
-        image_seq_len = latent_height * latent_width
-
-        # Set timesteps (shift calculation is done internally by scheduler)
-        scheduler.set_timesteps(
-            step_count=self.step_count,
-            image_sequence_length=image_seq_len
-        )
+        if self.scheduler_type == "linear_quadratic":
+            scheduler = LinearQuadraticEuler(self.scheduler_path, device=self.device)
+            scheduler.set_timesteps(self.step_count)
+        else:
+            scheduler = FlowMatchEulerDiscrete(self.scheduler_path, device=self.device)
+            # Calculate image sequence length for scheduler based on latent dimensions
+            image_seq_len = latent_height * latent_width
+            scheduler.set_timesteps(
+                step_count=self.step_count,
+                image_sequence_length=image_seq_len
+            )
         timesteps = scheduler._timesteps
 
         # ========================================================================
