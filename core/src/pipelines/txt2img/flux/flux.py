@@ -9,7 +9,7 @@ import torch
 
 from components import CLIPTokenizer, T5Tokenizer, T5TextEncoder, CLIPTextEncoder, \
     KullbackLeibler
-from components.schedulers.flowmatcheulerdiscrete import FlowMatchEulerDiscrete
+from components.schedulers import FlowMatchEulerDiscrete, LinearQuadraticEuler
 from components.tranformers.flux.fluxtransformer import FluxTransformer
 from utils import ImageSaver, unpatchify
 from utils.latent_generator import LatentGenerator
@@ -28,7 +28,8 @@ class FluxPipeline:
             image_width: int,
             seed: int,
             guidance_scale: float,
-            image_name: Optional[str]
+            image_name: Optional[str],
+            scheduler_type: str = "linear_quadratic"
     ):
         self.batch_size = batch_size
         self.clip_prompt = prompts['clip']['positive']
@@ -40,6 +41,7 @@ class FluxPipeline:
         self.seed = seed
         self.guidance_scale = guidance_scale
         self.image_name = image_name
+        self.scheduler_type = scheduler_type
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         info(f"Running on device: {self.device}")
@@ -160,8 +162,13 @@ class FluxPipeline:
             dtype=torch.bfloat16,
         )
 
-        scheduler = FlowMatchEulerDiscrete(self.scheduler_path, device=self.device)
-        scheduler.set_timesteps(self.step_count, latent_generator.sequence_length)
+        info(f'Scheduler type: {self.scheduler_type}')
+        if self.scheduler_type == "linear_quadratic":
+            scheduler = LinearQuadraticEuler(self.scheduler_path, device=self.device)
+            scheduler.set_timesteps(self.step_count)
+        else:
+            scheduler = FlowMatchEulerDiscrete(self.scheduler_path, device=self.device)
+            scheduler.set_timesteps(self.step_count, latent_generator.sequence_length)
 
         # ========================================================================
         # 3. Initialize Transformer
