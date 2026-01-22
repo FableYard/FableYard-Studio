@@ -4,12 +4,16 @@
 import torch
 import torch.nn as nn
 
+from .attn_block import AttnBlock
 from .resnet import ResnetBlock
 
 
 class MidBlock(nn.Module):
     """
     Middle block for UNet-style/Transformer architecture with ResNet blocks.
+
+    When attention is enabled, the block follows the pattern:
+    ResNet0 -> Attention -> ResNet1 (-> ResNet2 -> ... if layer_count > 1)
 
     Args:
         input_channel_count: Number of input channels
@@ -19,7 +23,7 @@ class MidBlock(nn.Module):
         resnet_epsilon: Epsilon for GroupNorm in ResNet blocks
         resnet_activation_function: Activation function for ResNet blocks
         output_scale_factor: Output scale factor for ResNet blocks
-        add_attention: Whether to add attention layers (currently not implemented, keeping simple)
+        add_attention: Whether to add attention layers between ResNet blocks
     """
 
     def __init__(
@@ -37,9 +41,13 @@ class MidBlock(nn.Module):
 
         self.add_attention = add_attention
 
+        # When attention is enabled, we need at least 2 ResNet blocks
+        # (one before attention, one after) to match diffusers weight structure
+        actual_layer_count = max(layer_count + 1, 2) if add_attention else layer_count
+
         # Build ResNet blocks
         resnets = []
-        for _ in range(layer_count):
+        for _ in range(actual_layer_count):
             resnets.append(
                 ResnetBlock(
                     input_channel_count=input_channel_count,
@@ -54,9 +62,17 @@ class MidBlock(nn.Module):
 
         self.resnets = nn.ModuleList(resnets)
 
-        # Note: Attention blocks could be added here if needed in the future
-        # For now, keeping it simple with just ResNet blocks
-        self.attentions = None
+        # Build attention blocks
+        if add_attention:
+            self.attentions = nn.ModuleList([
+                AttnBlock(
+                    in_channels=input_channel_count,
+                    num_groups=resnet_group_count,
+                    eps=resnet_epsilon,
+                )
+            ])
+        else:
+            self.attentions = None
 
     def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
         """
@@ -68,8 +84,15 @@ class MidBlock(nn.Module):
         Returns:
             Output tensor of shape (batch, in_channels, height, width)
         """
-        # Process through ResNet blocks
-        for resnet in self.resnets:
+        # First ResNet block
+        hidden_states = self.resnets[0](hidden_states)
+
+        # Attention (if enabled)
+        if self.attentions is not None:
+            hidden_states = self.attentions[0](hidden_states)
+
+        # Remaining ResNet blocks
+        for resnet in self.resnets[1:]:
             hidden_states = resnet(hidden_states)
 
         return hidden_states
