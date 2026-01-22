@@ -25,37 +25,37 @@ def main():
     # ========================================================================
     # These parameters would normally come from the API/queue layer
     pipeline_type = "txt2img"
-    # model_family = 'flux'
-    # model_name = 'dev.0.30.0'
-    model_family = "z"
-    model_name = "turbo"
+    model_family = 'flux'
+    model_name = 'dev.0.30.0'
+    # model_family = "z"
+    # model_name = "turbo"
 
     # Runtime parameters
     batch_size = 1
     prompts = {
-        # "clip": {
-        #     "positive": "score_9, score_8_up, fabled hero, light cloth armor, hood and tattered cape, staff, dramatic"
-        #                 " sunlight, meadow, trees in background",
-        #     "negative": ""
-        # },
-        # "t5": {
-        #     "positive": "score_9, score_8_up. An image of a fabled hero standing in a meadow. He is wearing light cloth"
-        #                 " armor, a hood, and a tattered cape. Dramatic sunlight illuminates the trees in the "
-        #                 "background.",
-        #     "negative": ""
-        # }
-        "qwen": {
-            "positive": "android 18, blonde hair, blue eyes, eyelashes, hoop earrings, short hair, earrings, belt,"
-                        " black legwear, black shirt, shirt pocket, collarbone, denim, denim skirt, high-waist skirt,"
-                        " jewelry, long sleeves, pocket, shirt, shirt tucked in, skirt, striped, striped sleeves,"
-                        " waistcoat, retro_scifi_artstyle, 1girl, solo, alone, retro_artstyle, retro, cyberpunk,"
-                        " masterpiece, highres, cyberpunk city background",
-            "negative": "bad quality, low quality, score_1, score_2, score_3, deformed"
+        "clip": {
+            "positive": "score_9, score_8_up, fabled hero, light cloth armor, hood and tattered cape, staff, dramatic"
+                        " sunlight, meadow, trees in background",
+            "negative": ""
+        },
+        "t5": {
+            "positive": "score_9, score_8_up. An image of a fabled hero standing in a meadow. He is wearing light cloth"
+                        " armor, a hood, and a tattered cape. Dramatic sunlight illuminates the trees in the "
+                        "background.",
+            "negative": ""
         }
+        # "qwen": {
+        #     "positive": "android 18, blonde hair, blue eyes, eyelashes, hoop earrings, short hair, earrings, belt,"
+        #                 " black legwear, black shirt, shirt pocket, collarbone, denim, denim skirt, high-waist skirt,"
+        #                 " jewelry, long sleeves, pocket, shirt, shirt tucked in, skirt, striped, striped sleeves,"
+        #                 " waistcoat, retro_scifi_artstyle, 1girl, solo, alone, retro_artstyle, retro, cyberpunk,"
+        #                 " masterpiece, highres, cyberpunk city background",
+        #     "negative": "bad quality, low quality, score_1, score_2, score_3, deformed"
+        # }
     }
     step_count = 15
-    height = 512
-    width = 512
+    height = 1024
+    width = 1024
     seed = 35481661
     guidance_scale = 3.5
     image_name = "demo_output"
@@ -63,21 +63,21 @@ def main():
     # ========================================================================
     # Adapters configuration
     # ========================================================================
-    project_root = Path.cwd().parent
+    # project_root = Path.cwd().parent
     # cpa_path = project_root / 'user' / 'adapters' / 'flux' / 'CPA.safetensors'
     # retro_path = project_root / 'user' / 'adapters' / 'flux' / 'RetroAnimeFluxV1.safetensors'
     # glass_path = project_root / 'user' / 'adapters' / 'flux' / 'glass-sculptures-flux.safetensors'
-    z_retro_anime_path = project_root / 'user' / 'adapters' / 'z' / 'retro_scifi-90s_anime_style_Z_image_turbo.safetensors'
+    # z_retro_anime_path = project_root / 'user' / 'adapters' / 'z' / 'retro_scifi-90s_anime_style_Z_image_turbo.safetensors'
 
     # info(f"cpa_path: {cpa_path}")
-    adapters = {
-        # Example structure: "adapter_name": {"path": "path/to/adapter.safetensors", "strength": 1.0}
-        # "CPA": {"path": cpa_path, "strength": 0.8},
-        # "RetroAnime": {"path": retro_path, "strength": 1.0},
-        # "glass-sculptures-flux": {"path": glass_path, "strength": 0.8}
-        "retro_scifi_90s_anime": {"path": z_retro_anime_path, "strength": 0.8}
-    }
-    # adapters = None
+    # adapters = {
+    #     # Example structure: "adapter_name": {"path": "path/to/adapter.safetensors", "strength": 1.0}
+    #     # "CPA": {"path": cpa_path, "strength": 0.8},
+    #     # "RetroAnime": {"path": retro_path, "strength": 1.0},
+    #     # "glass-sculptures-flux": {"path": glass_path, "strength": 0.8}
+    #     "retro_scifi_90s_anime": {"path": z_retro_anime_path, "strength": 0.8}
+    # }
+    adapters = None
 
     # ========================================================================
     # Create and Execute Pipeline
