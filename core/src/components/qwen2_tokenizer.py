@@ -41,7 +41,6 @@ class Qwen2Tokenizer:
         messages: List[dict],
         tokenize: bool = False,
         add_generation_prompt: bool = True,
-        enable_thinking: bool = True,
         **kwargs
     ) -> Union[str, List[int]]:
         """
@@ -51,26 +50,16 @@ class Qwen2Tokenizer:
             messages: List of message dicts with 'role' and 'content' keys
             tokenize: Whether to tokenize the output
             add_generation_prompt: Whether to add generation prompt
-            enable_thinking: Whether to enable thinking mode (Qwen-specific)
             **kwargs: Additional arguments passed to apply_chat_template
 
         Returns:
             Formatted string or token IDs depending on tokenize parameter
         """
-        # Build kwargs for apply_chat_template
-        template_kwargs = {
-            "tokenize": tokenize,
-            "add_generation_prompt": add_generation_prompt,
-            **kwargs
-        }
-
-        # Add enable_thinking if supported
-        if enable_thinking and hasattr(self.tokenizer, 'chat_template'):
-            template_kwargs["enable_thinking"] = enable_thinking
-
         return self.tokenizer.apply_chat_template(
             messages,
-            **template_kwargs
+            tokenize=tokenize,
+            add_generation_prompt=add_generation_prompt,
+            **kwargs
         )
 
     def encode(

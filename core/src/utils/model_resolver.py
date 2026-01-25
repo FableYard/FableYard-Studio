@@ -15,11 +15,15 @@ from typing import Dict
 # Input is lowercase, filesystem uses lowercase (matching actual directory structure)
 FAMILY_CASE_MAP: Dict[str, str] = {
     "flux": "flux",
-    "z": "z"
+    "z": "z",
+    "qwen": "qwen",
+    "llama": "llama",
+    "mistral": "mistral",
+    "gemma": "gemma",
 }
 
 # Valid pipeline types
-VALID_PIPELINE_TYPES = {"txt2img"}
+VALID_PIPELINE_TYPES = {"txt2img", "txt2txt"}
 
 
 def resolve_model_path(

@@ -83,7 +83,6 @@ class ZImagePipeline:
             messages,
             tokenize=False,
             add_generation_prompt=True,
-            enable_thinking=True,
         )
 
         # Tokenize prompt
