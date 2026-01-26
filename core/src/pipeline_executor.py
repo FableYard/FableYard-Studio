@@ -192,28 +192,38 @@ class Pipeline:
                 )
 
         elif pipeline_type == "txt2txt":
-            # Extract txt2txt params
+            # Extract user-facing params (prompt, max_new_tokens, temperature, seed)
             max_new_tokens = params.get("max_new_tokens", 512)
             temperature = params.get("temperature", 0.6)
-            top_k = params.get("top_k", 20)
-            top_p = params.get("top_p", 0.95)
-            repetition_penalty = params.get("repetition_penalty", 1.1)
+
+            # Internal defaults (not user-facing)
+            top_k = 20
+            top_p = 0.95
+            repetition_penalty = 1.1
 
             # Extract prompt from dict structure
             prompt_text = prompts.get('text', {}).get('positive', '')
             if not prompt_text:
                 raise ValueError("txt2txt requires prompts['text']['positive']")
 
-            # Model-specific chat template kwargs
+            # Model-specific configuration (internal)
             model_family_lower = model_family.lower()
+            tokenizer_kwargs = {}
             chat_template_kwargs = {}
+            system_prompt = "Output only the result. No explanations or preamble."
 
             if model_family_lower == "qwen":
                 # Disable thinking mode for direct answers
                 chat_template_kwargs["enable_thinking"] = False
-            elif model_family_lower in ("llama", "mistral", "gemma"):
-                # Standard models - no special kwargs needed
-                pass
+                system_prompt = "Output only the result. No explanations, no preamble, no thinking."
+            elif model_family_lower == "mistral":
+                # Fix tokenizer regex pattern issue
+                tokenizer_kwargs["fix_mistral_regex"] = True
+                system_prompt = "Output only the result. No explanations or preamble."
+            elif model_family_lower == "gemma":
+                system_prompt = "Output only the result. No options, no explanations, no preamble, no markdown formatting."
+            elif model_family_lower == "llama":
+                system_prompt = "Output only the result. No explanations or preamble."
             else:
                 raise ValueError(
                     f"Unsupported model_family '{model_family}' for txt2txt. "
@@ -225,12 +235,14 @@ class Pipeline:
             return TextGenerationPipeline(
                 model_path=model_path,
                 prompt=prompt_text,
+                system_prompt=system_prompt,
                 max_new_tokens=max_new_tokens,
                 temperature=temperature,
                 top_k=top_k,
                 top_p=top_p,
                 repetition_penalty=repetition_penalty,
                 seed=seed,
+                tokenizer_kwargs=tokenizer_kwargs,
                 chat_template_kwargs=chat_template_kwargs,
             )
 

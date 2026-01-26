@@ -33,12 +33,14 @@ class TextGenerationPipeline:
         self,
         model_path: Path,
         prompt: str,
+        system_prompt: Optional[str] = None,
         max_new_tokens: int = 512,
         temperature: float = 0.6,
         top_k: int = 20,
         top_p: float = 0.95,
         repetition_penalty: float = 1.1,
         seed: int = -1,
+        tokenizer_kwargs: Optional[dict] = None,
         chat_template_kwargs: Optional[dict] = None,
     ):
         """
@@ -47,22 +49,26 @@ class TextGenerationPipeline:
         Args:
             model_path: Path to the model directory
             prompt: Input text prompt for generation
+            system_prompt: Optional system prompt for instructing model behavior
             max_new_tokens: Maximum number of tokens to generate (default: 512)
             temperature: Sampling temperature (default: 0.6)
             top_k: Top-k sampling parameter (default: 20)
             top_p: Top-p (nucleus) sampling parameter (default: 0.95)
             repetition_penalty: Penalty for repeating tokens (default: 1.1, >1 discourages repeats)
             seed: Random seed for reproducibility (-1 for random)
+            tokenizer_kwargs: Model-specific kwargs for tokenizer loading
             chat_template_kwargs: Model-specific kwargs for apply_chat_template
         """
         self.model_path = Path(model_path)
         self.prompt = prompt
+        self.system_prompt = system_prompt
         self.max_new_tokens = max_new_tokens
         self.temperature = temperature
         self.top_k = top_k
         self.top_p = top_p
         self.repetition_penalty = repetition_penalty
         self.seed = seed
+        self.tokenizer_kwargs = tokenizer_kwargs or {}
         self.chat_template_kwargs = chat_template_kwargs or {}
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -79,7 +85,8 @@ class TextGenerationPipeline:
         info("Loading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(
             self.model_path,
-            trust_remote_code=True
+            trust_remote_code=True,
+            **self.tokenizer_kwargs
         )
 
         info("Loading model with device_map='auto' for CPU offloading...")
@@ -107,19 +114,49 @@ class TextGenerationPipeline:
         # Format as chat message for proper Q&A behavior (if chat template available)
         if tokenizer.chat_template is not None:
             info("Formatting prompt with chat template...")
-            messages = [
-                {"role": "user", "content": self.prompt}
-            ]
-            text = tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True,
-                **self.chat_template_kwargs
-            )
+
+            # Try with system message first, fall back to prepending if not supported
+            if self.system_prompt:
+                try:
+                    messages = [
+                        {"role": "system", "content": self.system_prompt},
+                        {"role": "user", "content": self.prompt}
+                    ]
+                    text = tokenizer.apply_chat_template(
+                        messages,
+                        tokenize=False,
+                        add_generation_prompt=True,
+                        **self.chat_template_kwargs
+                    )
+                except Exception as e:
+                    if "System role not supported" in str(e):
+                        # Model doesn't support system role, prepend to user message
+                        info("System role not supported, prepending to user message...")
+                        combined_prompt = f"{self.system_prompt}\n\n{self.prompt}"
+                        messages = [{"role": "user", "content": combined_prompt}]
+                        text = tokenizer.apply_chat_template(
+                            messages,
+                            tokenize=False,
+                            add_generation_prompt=True,
+                            **self.chat_template_kwargs
+                        )
+                    else:
+                        raise
+            else:
+                messages = [{"role": "user", "content": self.prompt}]
+                text = tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                    **self.chat_template_kwargs
+                )
         else:
             # Fallback to raw text for base models without chat template
             info("No chat template available, using raw prompt...")
-            text = self.prompt
+            if self.system_prompt:
+                text = f"{self.system_prompt}\n\n{self.prompt}"
+            else:
+                text = self.prompt
 
         info("Tokenizing input...")
         inputs = tokenizer(text, return_tensors="pt").to(model.device)

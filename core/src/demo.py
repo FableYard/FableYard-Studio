@@ -98,14 +98,14 @@ def main():
 
     # --- txt2txt configuration ---
     pipeline_type = "txt2txt"
-    model_family = "mistral"
+    model_family = "llama"
     model_name = '3-8b'
     prompts = {
         "text": {
             "positive": "Improve the following prompt: An image of a fabled hero standing in a meadow. He is wearing"
                         " light cloth armor, a hood, and a tattered cape. Dramatic sunlight illuminates the trees in"
                         " the background.",
-            "negative": ""
+            "system": "Output only the improved prompt. No explanations or preamble."
         }
     }
     seed = -1
