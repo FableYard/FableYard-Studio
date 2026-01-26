@@ -53,6 +53,7 @@ class PipelineWorker:
         model = payload.get("model")
         prompts = payload.get("prompts")
         step_count = payload.get("stepCount", 20)  # Default to 20 if not provided
+        max_new_tokens = payload.get("maxNewTokens", 512)  # Default to 512 for txt2txt
         image_width = payload.get("imageWidth", 512)
         image_height = payload.get("imageHeight", 512)
         seed = payload.get("seed", -1)  # Default to random
@@ -150,9 +151,9 @@ class PipelineWorker:
                     "image_name": job_id,
                 }
             elif pipeline_type == "txt2txt":
-                print(f"[WORKER DEBUG] Using max_new_tokens={step_count}")
+                print(f"[WORKER DEBUG] Using max_new_tokens={max_new_tokens}")
                 params = {
-                    "max_new_tokens": step_count,
+                    "max_new_tokens": max_new_tokens,
                 }
             else:
                 params = {}

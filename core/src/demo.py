@@ -98,8 +98,8 @@ def main():
 
     # --- txt2txt configuration ---
     pipeline_type = "txt2txt"
-    model_family = "llama"
-    model_name = '3-8b'
+    model_family = "mistral"
+    model_name = '8b'
     prompts = {
         "text": {
             "positive": "Improve the following prompt: An image of a fabled hero standing in a meadow. He is wearing"

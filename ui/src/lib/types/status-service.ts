@@ -24,7 +24,8 @@ export interface ProcessingStatus extends BaseStatusEntry {
 
 export interface CompleteStatus extends BaseStatusEntry {
 	type: 'complete';
-	outputPath: string;
+	outputPath?: string;      // For txt2img
+	generatedText?: string;   // For txt2txt
 	duration: number; // Duration in milliseconds
 }
 
