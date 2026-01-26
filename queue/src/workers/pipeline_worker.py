@@ -53,6 +53,7 @@ class PipelineWorker:
         model = payload.get("model")
         prompts = payload.get("prompts")
         step_count = payload.get("stepCount", 20)  # Default to 20 if not provided
+        max_new_tokens = payload.get("maxNewTokens", 512)  # Default to 512 for txt2txt
         image_width = payload.get("imageWidth", 512)
         image_height = payload.get("imageHeight", 512)
         seed = payload.get("seed", -1)  # Default to random
@@ -135,41 +136,66 @@ class PipelineWorker:
         try:
             # Create pipeline using factory
             print(f"[WORKER DEBUG] Creating pipeline with prompts={repr(prompts)}")
-            print(f"[WORKER DEBUG] Using {step_count} diffusion steps")
-            print(f"[WORKER DEBUG] Image size: {image_width}x{image_height}")
+
+            # Build type-specific params
+            if pipeline_type == "txt2img":
+                print(f"[WORKER DEBUG] Using {step_count} diffusion steps")
+                print(f"[WORKER DEBUG] Image size: {image_width}x{image_height}")
+                params = {
+                    "batch_size": batch_size,
+                    "adapters": adapters,
+                    "step_count": step_count,
+                    "image_height": image_height,
+                    "image_width": image_width,
+                    "guidance_scale": guidance_scale,
+                    "image_name": job_id,
+                }
+            elif pipeline_type == "txt2txt":
+                print(f"[WORKER DEBUG] Using max_new_tokens={max_new_tokens}")
+                params = {
+                    "max_new_tokens": max_new_tokens,
+                }
+            else:
+                params = {}
+
             pipeline = Pipeline.create(
                 pipeline_type=pipeline_type,
                 model_family=model_family,
                 model_name=model_name,
-                batch_size=batch_size,
                 prompts=prompts,
-                adapters=adapters,
-                step_count=step_count,
-                image_height=image_height,
-                image_width=image_width,
                 seed=seed,
-                guidance_scale=guidance_scale,
-                image_name=job_id
+                params=params,
             )
 
-            # Execute pipeline (synchronous, blocking ~11 minutes)
+            # Execute pipeline (synchronous, blocking)
             # No asyncio.to_thread needed - worker runs in separate process
-            result_path = pipeline.execute()
+            result = pipeline.execute()
 
-            # Extract filename for image URL
-            from pathlib import Path
-            filename = Path(result_path).name
-            image_url = f"/api/outputs/{filename}"
-
-            return {
-                "result_path": result_path,
-                "image_url": image_url,
-                "job_id": job_id,
-                "pipeline_type": pipeline_type,
-                "model_family": model_family,
-                "model_name": model_name,
-                "status": "completed"
-            }
+            # Handle output based on pipeline type
+            if pipeline_type == "txt2txt":
+                # txt2txt returns generated text directly
+                return {
+                    "generated_text": result,
+                    "job_id": job_id,
+                    "pipeline_type": pipeline_type,
+                    "model_family": model_family,
+                    "model_name": model_name,
+                    "status": "completed"
+                }
+            else:
+                # txt2img returns file path
+                from pathlib import Path
+                filename = Path(result).name
+                image_url = f"/api/outputs/{filename}"
+                return {
+                    "result_path": result,
+                    "image_url": image_url,
+                    "job_id": job_id,
+                    "pipeline_type": pipeline_type,
+                    "model_family": model_family,
+                    "model_name": model_name,
+                    "status": "completed"
+                }
 
         except NotImplementedError as e:
             raise RuntimeError(

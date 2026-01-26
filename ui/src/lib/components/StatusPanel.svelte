@@ -100,12 +100,19 @@
 						</div>
 					{:else if status.type === 'complete'}
 						{@const completeStatus = status as CompleteStatus}
-						<div class="status-info">
-							<span class="info-label">Output:</span>
-							<span class="info-value path" title={completeStatus.outputPath}>
-								{truncateWithTooltip(completeStatus.outputPath, 40).display}
-							</span>
-						</div>
+						{#if completeStatus.outputPath}
+							<div class="status-info">
+								<span class="info-label">Output:</span>
+								<span class="info-value path" title={completeStatus.outputPath}>
+									{truncateWithTooltip(completeStatus.outputPath, 40).display}
+								</span>
+							</div>
+						{:else if completeStatus.generatedText}
+							<div class="status-info">
+								<span class="info-label">Output:</span>
+								<span class="info-value">Text generated</span>
+							</div>
+						{/if}
 						<div class="status-info">
 							<span class="info-label">Duration:</span>
 							<span class="info-value">{formatDuration(completeStatus.duration)}</span>

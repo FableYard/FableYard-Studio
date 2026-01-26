@@ -77,41 +77,42 @@ class Pipeline:
         pipeline_type: str,
         model_family: str,
         model_name: str,
-        batch_size: int,
-        # clip_prompt: str,
-        # t5_prompt: str,
         prompts: dict[str, dict[str, str]],
-        adapters: dict[str, dict[str, str | float]] | None,
-        step_count: int,
-        image_height: int,
-        image_width: int,
         seed: int,
-        guidance_scale: float,
-        image_name: str | None = None,
-        scheduler_type: str = "linear_quadratic"
+        params: dict[str, Any],
     ):
         """
         Factory method to create the correct pipeline instance.
 
         Args:
-            pipeline_type: Type of pipeline (e.g., "txt2img")
-            model_family: Model family (e.g., "flux", "z", "stablediffusion")
-            model_name: Model version (e.g., "dev.0.30.0", "turbo")
-            batch_size: Number of images to generate in parallel
+            pipeline_type: Type of pipeline (e.g., "txt2img", "txt2txt")
+            model_family: Model family (e.g., "flux", "z", "qwen")
+            model_name: Model version (e.g., "dev.0.30.0", "3-8b")
             prompts: Dict mapping prompt types to positive/negative text
-                     Example: {"clip": {"positive": "...", "negative": "..."},
+                     txt2img: {"clip": {"positive": "...", "negative": "..."},
                                "t5": {"positive": "...", "negative": "..."}}
-            adapters: Dict mapping adapter paths and their strengths
-            step_count: Number of diffusion steps
-            image_height: Output image height in pixels
-            image_width: Output image width in pixels
+                     txt2txt: {"text": {"positive": "...", "negative": ""}}
             seed: Random seed for reproducibility
-            guidance_scale: Guidance scale for classifier-free guidance
-            image_name: Optional filename for saved image (without extension)
-            scheduler_type: Scheduler type ("flow_match" or "linear_quadratic")
+            params: Type-specific parameters dict
+                    txt2img: {
+                        "batch_size": int,
+                        "adapters": dict | None,
+                        "step_count": int,
+                        "image_height": int,
+                        "image_width": int,
+                        "guidance_scale": float,
+                        "image_name": str | None,
+                        "scheduler_type": str
+                    }
+                    txt2txt: {
+                        "max_new_tokens": int,
+                        "temperature": float,
+                        "top_k": int,
+                        "top_p": float
+                    }
 
         Returns:
-            Pipeline instance (FluxPipeline, ZImagePipeline, etc.)
+            Pipeline instance (FluxPipeline, ZImagePipeline, QwenPipeline, etc.)
 
         Raises:
             ValueError: If pipeline_type or model_family is unsupported
@@ -126,6 +127,16 @@ class Pipeline:
 
         # Route to correct pipeline implementation
         if pipeline_type == "txt2img":
+            # Extract txt2img params
+            batch_size = params.get("batch_size", 1)
+            adapters = params.get("adapters")
+            step_count = params.get("step_count", 20)
+            image_height = params.get("image_height", 512)
+            image_width = params.get("image_width", 512)
+            guidance_scale = params.get("guidance_scale", 3.5)
+            image_name = params.get("image_name")
+            scheduler_type = params.get("scheduler_type", "linear_quadratic")
+
             model_family_lower = model_family.lower()
 
             if model_family_lower == "flux":
@@ -133,8 +144,6 @@ class Pipeline:
                 return FluxPipeline(
                     model_path=model_path,
                     batch_size=batch_size,
-                    # clip_prompt=clip_prompt,
-                    # t5_prompt=t5_prompt,
                     adapters=adapters,
                     prompts=prompts,
                     step_count=step_count,
@@ -153,13 +162,11 @@ class Pipeline:
                     f"Create pipelines/txt2img/stable_diffusion/stable_diffusion.py"
                 )
 
-            elif model_family_lower == "z": # TODO: Change model family to "z_image"
+            elif model_family_lower == "z":  # TODO: Change model family to "z_image"
                 from pipelines.txt2img.z_image.z_image import ZImagePipeline
                 return ZImagePipeline(
                     model_path=model_path,
                     batch_size=batch_size,
-                    # clip_prompt=clip_prompt,
-                    # t5_prompt=t5_prompt,
                     prompts=prompts,
                     adapters=adapters,
                     step_count=step_count,
@@ -184,10 +191,65 @@ class Pipeline:
                     f"Supported families: flux, z, stablediffusion, pony"
                 )
 
+        elif pipeline_type == "txt2txt":
+            # Extract user-facing params (prompt, max_new_tokens, temperature, seed)
+            max_new_tokens = params.get("max_new_tokens", 512)
+            temperature = params.get("temperature", 0.6)
+
+            # Internal defaults (not user-facing)
+            top_k = 20
+            top_p = 0.95
+            repetition_penalty = 1.1
+
+            # Extract prompt from dict structure
+            prompt_text = prompts.get('text', {}).get('positive', '')
+            if not prompt_text:
+                raise ValueError("txt2txt requires prompts['text']['positive']")
+
+            # Model-specific configuration (internal)
+            model_family_lower = model_family.lower()
+            tokenizer_kwargs = {}
+            chat_template_kwargs = {}
+            system_prompt = "Output only the result. No explanations or preamble."
+
+            if model_family_lower == "qwen":
+                # Disable thinking mode for direct answers
+                chat_template_kwargs["enable_thinking"] = False
+                system_prompt = "Output only the result. No explanations, no preamble, no thinking."
+            elif model_family_lower == "mistral":
+                # Fix tokenizer regex pattern issue
+                tokenizer_kwargs["fix_mistral_regex"] = True
+                system_prompt = "Output only the result. No explanations or preamble."
+            elif model_family_lower == "gemma":
+                system_prompt = "Output only the result. No options, no explanations, no preamble, no markdown formatting."
+            elif model_family_lower == "llama":
+                system_prompt = "Output only the result. No explanations or preamble."
+            else:
+                raise ValueError(
+                    f"Unsupported model_family '{model_family}' for txt2txt. "
+                    f"Supported families: qwen, llama, mistral, gemma"
+                )
+
+            from pipelines.txt2txt.text_generation import TextGenerationPipeline
+
+            return TextGenerationPipeline(
+                model_path=model_path,
+                prompt=prompt_text,
+                system_prompt=system_prompt,
+                max_new_tokens=max_new_tokens,
+                temperature=temperature,
+                top_k=top_k,
+                top_p=top_p,
+                repetition_penalty=repetition_penalty,
+                seed=seed,
+                tokenizer_kwargs=tokenizer_kwargs,
+                chat_template_kwargs=chat_template_kwargs,
+            )
+
         else:
             raise ValueError(
                 f"Unsupported pipeline_type: '{pipeline_type}'. "
-                f"Supported types: txt2img"
+                f"Supported types: txt2img, txt2txt"
             )
 
 
@@ -340,14 +402,16 @@ class PipelineExecutor:
                 pipeline_type=pipeline_type,
                 model_family=model_family,
                 model_name=model_name,
-                batch_size=batch_size,
                 prompts=prompts_dict,
-                step_count=step_count,
-                image_height=image_height,
-                image_width=image_width,
                 seed=seed,
-                guidance_scale=guidance_scale,
-                image_name=job_id
+                params={
+                    "batch_size": batch_size,
+                    "step_count": step_count,
+                    "image_height": image_height,
+                    "image_width": image_width,
+                    "guidance_scale": guidance_scale,
+                    "image_name": job_id,
+                }
             )
 
             # Execute pipeline
@@ -441,14 +505,16 @@ class PipelineExecutor:
                 pipeline_type=pipeline_type,
                 model_family=model_family,
                 model_name=model_name,
-                batch_size=batch_size,
                 prompts=prompts_dict,
-                step_count=step_count,
-                image_height=image_height,
-                image_width=image_width,
                 seed=seed,
-                guidance_scale=guidance_scale,
-                image_name=job_id
+                params={
+                    "batch_size": batch_size,
+                    "step_count": step_count,
+                    "image_height": image_height,
+                    "image_width": image_width,
+                    "guidance_scale": guidance_scale,
+                    "image_name": job_id,
+                }
             )
 
             # Execute pipeline

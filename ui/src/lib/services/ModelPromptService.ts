@@ -46,16 +46,28 @@ class ModelPromptServiceImpl implements ModelPromptService {
 
         const pipelineConfig = config[configPipelineType];
         if (!pipelineConfig) {
+            // If txt2txt, return default config (all txt2txt models use same prompt structure)
+            if (configPipelineType === 'txt2txt') {
+                return { "Text": ["positive"] };
+            }
             throw new Error(`Pipeline type "${pipelineType}" (${configPipelineType}) not found in configuration`);
         }
 
         const familyConfig = pipelineConfig[modelFamily];
         if (!familyConfig) {
+            // If txt2txt and model not found, return default config
+            if (configPipelineType === 'txt2txt') {
+                return { "Text": ["positive"] };
+            }
             throw new Error(`Model family "${modelFamily}" not found for pipeline "${pipelineType}"`);
         }
 
         const modelConfig = familyConfig[modelName];
         if (!modelConfig) {
+            // If txt2txt and model not found, return default config
+            if (configPipelineType === 'txt2txt') {
+                return { "Text": ["positive"] };
+            }
             throw new Error(`Model "${modelName}" not found in family "${modelFamily}"`);
         }
 

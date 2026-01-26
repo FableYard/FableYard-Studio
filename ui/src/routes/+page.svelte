@@ -5,6 +5,7 @@
 	import ControlBar from '$lib/components/ControlBar.svelte';
 	import PromptPanel from '$lib/components/PromptPanel.svelte';
 	import AdapterPanel from '$lib/components/AdapterPanel.svelte';
+	import OutputTextPanel from '$lib/components/OutputTextPanel.svelte';
 	import StatusPanel from '$lib/components/StatusPanel.svelte';
 	import { modelPromptService } from '$lib/services/ModelPromptService';
 	import { adapterSelectorService } from '$lib/services/AdapterSelectorService';
@@ -163,7 +164,9 @@
 							modelFamily={selectedModelFamily}
 							modelName={selectedModelName}
 						/>
-						{#if selectedPipeline === 'Text to Image'}
+						{#if selectedPipeline === 'Text to Text'}
+							<OutputTextPanel />
+						{:else if selectedPipeline === 'Text to Image'}
 							<AdapterPanel bind:this={adapterPanelRef} service={adapterSelectorService} />
 						{/if}
 					</div>
@@ -237,7 +240,8 @@
 	}
 
 	.panels-container :global(#prompt-panel),
-	.panels-container :global(#adapter-panel) {
+	.panels-container :global(#adapter-panel),
+	.panels-container :global(#output-text-panel) {
 		flex: 1;
 		overflow-y: auto;
 	}

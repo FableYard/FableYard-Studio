@@ -48,6 +48,7 @@ class StatusServiceImpl implements StatusService {
 				console.log('Generation completed:', {
 					taskId: task_id,
 					outputPath: result?.output_path,
+					generatedText: result?.generated_text,
 					duration: result?.duration
 				});
 				const status: CompleteStatus = {
@@ -55,7 +56,8 @@ class StatusServiceImpl implements StatusService {
 					runId: task_id,
 					timestamp: new Date().toISOString(),
 					type: 'complete',
-					outputPath: result?.output_path || '/outputs/unknown',
+					outputPath: result?.output_path,
+					generatedText: result?.generated_text,
 					duration: result?.duration || 0
 				};
 				this.addStatus(status);
