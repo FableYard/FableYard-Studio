@@ -77,17 +77,27 @@ def worker_main(job_queue: mp.Queue, event_queue: mp.Queue):
                 # Calculate duration in milliseconds
                 duration_ms = int((time.time() - start_time) * 1000)
 
+                # Build result structure based on pipeline type
+                pipeline_type = result.get("pipeline_type", "")
+                if pipeline_type == "txt2txt":
+                    result_data = {
+                        "generated_text": result.get("generated_text", ""),
+                        "duration": duration_ms
+                    }
+                else:
+                    result_data = {
+                        "output_path": result.get("result_path", ""),
+                        "image_url": result.get("image_url", ""),
+                        "duration": duration_ms
+                    }
+
                 # Publish completion event with proper structure for StatusService
                 event_bridge.publish("task.completed", {
                     "task_id": task_id,
                     "job_id": task_id,
                     "task_type": task_type,
                     "status": "completed",
-                    "result": {
-                        "output_path": result.get("result_path", ""),
-                        "image_url": result.get("image_url", ""),
-                        "duration": duration_ms
-                    }
+                    "result": result_data
                 })
 
                 print(f"[Worker] ✓ Job {task_id} completed successfully in {duration_ms}ms\n")
