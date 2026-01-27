@@ -97,21 +97,33 @@ def main():
     # }
 
     # --- txt2txt configuration ---
-    pipeline_type = "txt2txt"
-    model_family = "mistral"
-    model_name = '8b'
+    # pipeline_type = "txt2txt"
+    # model_family = "mistral"
+    # model_name = '8b'
+    # prompts = {
+    #     "text": {
+    #         "positive": "Improve the following prompt: An image of a fabled hero standing in a meadow. He is wearing"
+    #                     " light cloth armor, a hood, and a tattered cape. Dramatic sunlight illuminates the trees in"
+    #                     " the background.",
+    #         "system": "Output only the improved prompt. No explanations or preamble."
+    #     }
+    # }
+    # seed = -1
+    # params = {
+    #     "max_new_tokens": 200,
+    # }
+
+    # --- txt2aud/soprano configuration ---
+    pipeline_type = "txt2aud"
+    model_family = "soprano"
+    model_name = "1.1-80m"
     prompts = {
         "text": {
-            "positive": "Improve the following prompt: An image of a fabled hero standing in a meadow. He is wearing"
-                        " light cloth armor, a hood, and a tattered cape. Dramatic sunlight illuminates the trees in"
-                        " the background.",
-            "system": "Output only the improved prompt. No explanations or preamble."
+            "positive": "Hello! This is a test of the Soprano text to speech system."
         }
     }
     seed = -1
-    params = {
-        "max_new_tokens": 200,
-    }
+    params = {}
 
     # ========================================================================
     # Create and Execute Pipeline
@@ -134,6 +146,8 @@ def main():
     if pipeline_type == "txt2txt":
         info(f"Demo complete! Generated text:")
         info(result)
+    elif pipeline_type == "txt2aud":
+        info(f"Demo complete! Audio saved to: {result}")
     else:
         info(f"Demo complete! Image saved to: {result}")
     info("=" * 60)

@@ -2,7 +2,7 @@
 
 > Generate media with locally stored AI models
 
-[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/FableYard/FableYard-Studio)
+[![Version](https://img.shields.io/badge/version-0.3.0-blue.svg)](https://github.com/FableYard/FableYard-Studio)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
 **Links:** [www.fableyard.com](https://fableyard.com)
@@ -155,6 +155,11 @@ Future features and enhancements planned for FableYard Studio:
 - **Cloud Generation Option** - Cloud-based processing for users without GPUs
 
 ## Change Log
+
+### Version 0.3.0
+
+- Implement Text to Audio Pipeline
+- Add support for Soprano TTS
 
 ### Version 0.2.0
 

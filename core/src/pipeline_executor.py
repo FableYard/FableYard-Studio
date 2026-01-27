@@ -246,10 +246,27 @@ class Pipeline:
                 chat_template_kwargs=chat_template_kwargs,
             )
 
+        elif pipeline_type == "txt2aud":
+            prompt_text = prompts.get('text', {}).get('positive', '')
+            if not prompt_text:
+                raise ValueError("txt2aud requires prompts['text']['positive']")
+
+            model_family_lower = model_family.lower()
+
+            if model_family_lower == "soprano":
+                from pipelines.txt2aud.soprano.soprano_pipeline import SopranoTTSPipeline
+                return SopranoTTSPipeline(
+                    model_path=model_path,
+                    prompt=prompt_text,
+                    seed=seed,
+                )
+            else:
+                raise ValueError(f"Unsupported txt2aud model: {model_family}")
+
         else:
             raise ValueError(
                 f"Unsupported pipeline_type: '{pipeline_type}'. "
-                f"Supported types: txt2img, txt2txt"
+                f"Supported types: txt2img, txt2txt, txt2aud"
             )
 
 
