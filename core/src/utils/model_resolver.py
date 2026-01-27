@@ -20,10 +20,11 @@ FAMILY_CASE_MAP: Dict[str, str] = {
     "llama": "llama",
     "mistral": "mistral",
     "gemma": "gemma",
+    "soprano": "soprano",
 }
 
 # Valid pipeline types
-VALID_PIPELINE_TYPES = {"txt2img", "txt2txt"}
+VALID_PIPELINE_TYPES = {"txt2img", "txt2txt", "txt2aud"}
 
 
 def resolve_model_path(
