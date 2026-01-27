@@ -4,10 +4,10 @@
 # ==================================================
 # Core ML Dependencies
 # ==================================================
---extra-index-url https://download.pytorch.org/whl/cu121
-torch>=2.0.0
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch>=2.10.0
 torchvision>=0.15.0
-torchaudio>=2.0.0
+torchaudio>=2.10.0
 
 # HuggingFace & Transformers
 transformers>=4.30.0
