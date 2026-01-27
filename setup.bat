@@ -64,6 +64,11 @@ if not exist user\models mkdir user\models
 if not exist user\models\txt2img mkdir user\models\txt2img
 if not exist user\models\txt2img\flux mkdir user\models\txt2img\flux
 if not exist user\models\txt2img\z mkdir user\models\txt2img\z
+if not exist user\models\txt2txt\gemma mkdir user\models\txt2txt\gemma
+if not exist user\models\txt2txt\llama mkdir user\models\txt2txt\llama
+if not exist user\models\txt2txt\mistral mkdir user\models\txt2txt\mistral
+if not exist user\models\txt2txt\qwen mkdir user\models\txt2txt\qwen
+if not exist user\models\txt2aud\soprano mkdir user\models\txt2aud\soprano
 if not exist user\outputs mkdir user\outputs
 echo [OK] User directories created
 echo.

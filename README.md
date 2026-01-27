@@ -156,6 +156,12 @@ Future features and enhancements planned for FableYard Studio:
 
 ## Change Log
 
+### Version 0.3.1
+
+- Update torch version in requirements.txt
+- Update torch version in core/requirements.txt
+- Include txt2txt and txt2aud directories in setup.bat
+
 ### Version 0.3.0
 
 - Implement Text to Audio Pipeline
